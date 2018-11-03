@@ -74,12 +74,10 @@ def transform_detections(detections, width, height, size):
     detections *= ratio
     if width > height:
         pad = np.ceil((width - height) / 2)
-        print(pad)
         detections[..., 1] -= pad
         detections[..., 3] -= pad
     else:
         pad = np.ceil((height - width) / 2)
-        print(pad)
         detections[..., 0] -= pad
         detections[..., 2] -= pad
 
