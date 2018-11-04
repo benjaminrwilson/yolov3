@@ -74,10 +74,10 @@ class Yolo(nn.Module):
 
 
 class Darknet(nn.Module):
-    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh):
+    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size):
         super(Darknet, self).__init__()
         self.blocks = utils.parse_cfg(cfg_file)
-        self.net_meta, self.layers = create_layers(self.blocks)
+        self.net_meta, self.layers = create_layers(self.blocks, size)
         self.nms_thresh = nms_thresh
         self.obj_thresh = obj_thresh
 
@@ -162,7 +162,7 @@ class Darknet(nn.Module):
                     convolutional.weight.data.copy_(layer_weights)
                     ptr += n_weights
 
-    def nms(self, x):
+    def nms(self, x, multi_nms=False):
         n_batches = x.shape[0]
         for i in range(n_batches):
             preds = x[x[..., 4] > self.obj_thresh]
@@ -177,11 +177,26 @@ class Darknet(nn.Module):
             img_classes = torch.unique(preds[..., -1])
 
             detections = []
-            for img_cls in img_classes:
-                pred_cls = preds[preds[..., -1] == img_cls]
+
+            if multi_nms:
+                for img_cls in img_classes:
+                    pred_cls = preds[preds[..., -1] == img_cls]
+                    conf_idx = torch.sort(
+                        preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
+                    pred_cls = pred_cls[conf_idx]
+
+                    n_det = pred_cls.shape[0]
+                    while pred_cls.shape[0]:
+                        detections.append(pred_cls[0])
+                        if pred_cls.shape[0] == 1:
+                            break
+                        ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
+                        iou_mask = ious < self.nms_thresh
+                        pred_cls = pred_cls[1:][iou_mask]
+            else:
                 conf_idx = torch.sort(
-                    preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
-                pred_cls = pred_cls[conf_idx]
+                    preds[..., 4], descending=True)[1]
+                pred_cls = preds[conf_idx]
 
                 n_det = pred_cls.shape[0]
                 while pred_cls.shape[0]:
@@ -191,11 +206,12 @@ class Darknet(nn.Module):
                     ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
                     iou_mask = ious < self.nms_thresh
                     pred_cls = pred_cls[1:][iou_mask]
+            
             detections = torch.cat(detections, 0)
         return detections
 
 
-def create_layers(cfg):
+def create_layers(cfg, size):
     net_meta = cfg[0]
     modules = nn.ModuleList()
 
@@ -252,8 +268,8 @@ def create_layers(cfg):
             anchors = [(anchors[2 * masks[i]], anchors[2 * masks[i] + 1])
                        for i in range(len(masks))]
 
-            input_width = int(net_meta["width"])
-            input_height = int(net_meta["height"])
+            input_width = size
+            input_height = size
             num_classes = int(layer["classes"])
 
             name = "yolo_{}".format(i)

@@ -1,8 +1,10 @@
 import os
 
 import cv2
-import torch
 import numpy as np
+import torch
+
+from torchvision import transforms
 
 
 def parse_cfg(cfg_path):
@@ -63,10 +65,22 @@ def write_detections(detections, img_path, size, dst):
     for d in detections:
         x1, y1, x2, y2 = d[:4].numpy()
         img = cv2.rectangle(img, (x1, y1), (x2, y2),
-                            (255, 255, 255), thickness=2)
+                            (255, 255, 255), thickness=3)
     img_name = img_path.split("/")[-1]
     dst = os.path.join(dst, img_name)
     cv2.imwrite(dst, img)
+
+
+def write_detections_cam(detections, img, size):
+    height, width = img.shape[0:2]
+    detections = transform_detections(detections, width, height, size)
+    for d in detections:
+        x1, y1, x2, y2 = d[:4].numpy()
+        print(img.shape)
+        img = cv2.rectangle(img, (x1, y1), (x2, y2),
+                            (255, 255, 255), thickness=2)
+    cv2.imshow('img', img)
+    cv2.waitKey(1)
 
 
 def transform_detections(detections, width, height, size):
@@ -82,3 +96,21 @@ def transform_detections(detections, width, height, size):
         detections[..., 2] -= pad
 
     return detections
+
+def transform_input(img, img_size):
+    data_transform = transforms.Compose([
+        transforms.ToTensor()])
+    height, width = img.shape[:2]
+    if height > width:
+        pad_top = int(np.ceil((height - width) / 2))
+        pad_bot = (width - height) // 2
+        img = cv2.copyMakeBorder(
+            img, 0, 0, pad_top, pad_bot, cv2.BORDER_CONSTANT, value=(127.5, 127.5, 127.5))
+    else:
+        pad_top = int(np.ceil((width - height) / 2))
+        pad_bot = (width - height) // 2
+        img = cv2.copyMakeBorder(
+            img, pad_top, pad_bot, 0, 0, cv2.BORDER_CONSTANT, value=(127.5, 127.5, 127.5))
+    img = cv2.resize(img, (img_size, img_size))
+    img = data_transform(img)
+    return img

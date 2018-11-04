@@ -7,26 +7,37 @@ import utils
 
 import models
 from data import YoloDataset
-from torchvision import transforms
 
 
 def test(opts):
     # Create model
-    model = models.Darknet(opts.cfg, opts.weights, opts.nms, opts.obj)
+    model = models.Darknet(opts.cfg, opts.weights,
+                           opts.nms, opts.obj, opts.size)
 
-    data_transform = transforms.Compose([
-        transforms.ToTensor()])
-    dataset = YoloDataset(opts.src, opts.size, data_transform)
+    dataset = YoloDataset(opts.src, opts.size)
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=1, shuffle=True,
                                              num_workers=4)
     model.eval()
-    for (img, img_name) in dataloader:
-        with torch.no_grad():
-            detections = model(img)
-            detections = detections.view(-1, 7)
-            utils.write_detections(detections, img_name[0], opts.size, opts.dst)
 
+    with torch.no_grad():
+        if not opts.use_cam:
+            for (img, img_name) in dataloader:
+                detections = model(img)
+                detections = detections.view(-1, 7)
+                utils.write_detections(
+                    detections, img_name[0], opts.size, opts.dst)
+        else:
+            cap = cv2.VideoCapture(0)
+            while True:
+                ret, frame = cap.read()
+                if ret:
+                    img = utils.transform_input(frame, opts.size).unsqueeze(0)
+                    detections = model(img)
+                    detections = detections.view(-1, 7)
+                    utils.write_detections_cam(detections, frame, opts.size)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 
 
 def main():
@@ -39,11 +50,13 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Supression threshold', default=.4)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=608)
+        '-s', '--size', help='Input size', default=288)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
+    opts.add_argument(
+        '-uc', '--use_cam', help='Use video camera for demo', default=False)
     opts = opts.parse_args()
     test(opts)
 
