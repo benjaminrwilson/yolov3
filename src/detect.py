@@ -24,29 +24,33 @@ def test(opts):
     class_to_names = utils.get_class_names(opts.names_path)
     with torch.no_grad():
         if not opts.use_cam:
-            for (img, img_name) in dataloader:
-                detections = model(img)
-                detections = detections.view(-1, 7)
-                utils.write_detections(
-                    detections,
-                    img_name[0],
-                    opts.size,
-                    opts.dst,
-                    class_colors,
-                    class_to_names)
+            run_detect(model, dataloader, opts, class_colors, class_to_names)
         else:
-            cap = cv2.VideoCapture(0)
-            while True:
-                ret, frame = cap.read()
-                if ret:
-                    img = utils.transform_input(frame, opts.size).unsqueeze(0)
-                    detections = model(img)
-                    detections = detections.view(-1, 7)
-                    utils.write_detections_cam(
-                        detections, frame, opts.size, class_colors, class_to_names)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            run_cam_detect(model, dataloader, opts, class_colors, class_to_names)
 
+def run_detect(model, dataloader, opts, class_colors, class_to_names):
+    for (img, img_name) in dataloader:
+        detections = model(img)
+        detections = detections.view(-1, 7)
+        utils.write_detections(
+            detections,
+            img_name[0],
+            opts.size,
+            opts.dst,
+            class_colors,
+            class_to_names)
+
+def run_cam_detect(model, dataloader, opts, class_colors, class_to_names):
+    cap = cv2.VideoCapture(0)
+    while True:
+        ret, frame = cap.read()
+        if ret:
+            img = utils.transform_input(frame, opts.size).unsqueeze(0)
+            detections = model(img)
+            utils.write_detections_cam(
+                detections, frame, opts.size, class_colors, class_to_names)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 def main():
     opts = argparse.ArgumentParser(description='Yolov3 Detection')
@@ -58,13 +62,13 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Supression threshold', default=.4)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=608)
+        '-s', '--size', help='Input size', default=352)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-uc', '--use_cam', help='Use video camera for demo', default=False)
+        '-uc', '--use_cam', help='Use video camera for demo', default=True)
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes', default="../cfg/coco.names")
     opts = opts.parse_args()

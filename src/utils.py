@@ -63,17 +63,7 @@ def write_detections(detections, img_path, size, dst, class_colors,
     img = cv2.imread(img_path)
     height, width = img.shape[0:2]
     detections = transform_detections(detections, width, height, size)
-    for d in detections:
-        x1, y1, x2, y2 = d[:4].numpy()
-        class_pred = int(d[-1].numpy())
-        img = cv2.rectangle(img, (x1, y1), (x2, y2),
-                            class_colors[class_pred], thickness=3)
-        img = cv2.putText(img, class_to_names[class_pred],
-                          (x1, y1),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          1,
-                          (255, 255, 255),
-                          2)
+    _write_detection(img, detections, class_colors, class_to_names)
 
     img_name = img_path.split("/")[-1]
     dst = os.path.join(dst, img_name)
@@ -81,8 +71,16 @@ def write_detections(detections, img_path, size, dst, class_colors,
 
 
 def write_detections_cam(detections, img, size, class_colors, class_to_names):
-    height, width = img.shape[0:2]
-    detections = transform_detections(detections, width, height, size)
+    if len(detections) > 0:
+        detections = detections.view(-1, 7)
+        height, width = img.shape[0:2]
+        detections = transform_detections(detections, width, height, size)
+        _write_detection(img, detections, class_colors, class_to_names)
+
+    cv2.imshow('img', img)
+
+
+def _write_detection(img, detections, class_colors, class_to_names):
     for d in detections:
         x1, y1, x2, y2 = d[:4].numpy()
         class_pred = int(d[-1].numpy())
@@ -90,11 +88,10 @@ def write_detections_cam(detections, img, size, class_colors, class_to_names):
                             class_colors[class_pred], thickness=3)
         img = cv2.putText(img, class_to_names[class_pred],
                           (x1, y1),
-                          cv2.FONT_HERSHEY_SIMPLEX,
+                          cv2.FONT_HERSHEY_DUPLEX,
                           1,
                           (255, 255, 255),
                           2)
-    cv2.imshow('img', img)
 
 
 def transform_detections(detections, width, height, size):

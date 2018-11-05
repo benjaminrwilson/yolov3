@@ -167,24 +167,37 @@ class Darknet(nn.Module):
         n_batches = x.shape[0]
         for i in range(n_batches):
             preds = x[x[..., 4] > self.obj_thresh]
-            preds = utils.darknet2corners(preds)
-            max_conf_cls, max_conf = torch.torch.max(preds[..., 5:], 1)
-            max_conf_cls = torch.sigmoid(max_conf_cls)
-
-            max_conf_cls = max_conf_cls.float().unsqueeze(1)
-            max_conf = max_conf.float().unsqueeze(1)
-
-            preds = torch.cat((preds[..., :5], max_conf_cls, max_conf), 1)
-            img_classes = torch.unique(preds[..., -1])
-
             detections = []
+            if preds.shape[0] > 0:
+                preds = utils.darknet2corners(preds)
+                max_conf_cls, max_conf = torch.torch.max(preds[..., 5:], 1)
+                max_conf_cls = torch.sigmoid(max_conf_cls)
 
-            if multi_nms:
-                for img_cls in img_classes:
-                    pred_cls = preds[preds[..., -1] == img_cls]
+                max_conf_cls = max_conf_cls.float().unsqueeze(1)
+                max_conf = max_conf.float().unsqueeze(1)
+
+                preds = torch.cat((preds[..., :5], max_conf_cls, max_conf), 1)
+                img_classes = torch.unique(preds[..., -1])
+
+                if multi_nms:
+                    for img_cls in img_classes:
+                        pred_cls = preds[preds[..., -1] == img_cls]
+                        conf_idx = torch.sort(
+                            preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
+                        pred_cls = pred_cls[conf_idx]
+
+                        n_det = pred_cls.shape[0]
+                        while pred_cls.shape[0]:
+                            detections.append(pred_cls[0])
+                            if pred_cls.shape[0] == 1:
+                                break
+                            ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
+                            iou_mask = ious < self.nms_thresh
+                            pred_cls = pred_cls[1:][iou_mask]
+                else:
                     conf_idx = torch.sort(
-                        preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
-                    pred_cls = pred_cls[conf_idx]
+                        preds[..., 4], descending=True)[1]
+                    pred_cls = preds[conf_idx]
 
                     n_det = pred_cls.shape[0]
                     while pred_cls.shape[0]:
@@ -194,21 +207,8 @@ class Darknet(nn.Module):
                         ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
                         iou_mask = ious < self.nms_thresh
                         pred_cls = pred_cls[1:][iou_mask]
-            else:
-                conf_idx = torch.sort(
-                    preds[..., 4], descending=True)[1]
-                pred_cls = preds[conf_idx]
 
-                n_det = pred_cls.shape[0]
-                while pred_cls.shape[0]:
-                    detections.append(pred_cls[0])
-                    if pred_cls.shape[0] == 1:
-                        break
-                    ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
-                    iou_mask = ious < self.nms_thresh
-                    pred_cls = pred_cls[1:][iou_mask]
-
-            detections = torch.cat(detections, 0)
+                detections = torch.cat(detections, 0)
         return detections
 
 
