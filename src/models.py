@@ -40,11 +40,8 @@ class Yolo(nn.Module):
         x = x.view(batch_size, n_anchors, grid_attr, grid_size,
                    grid_size).permute(0, 1, 3, 4, 2).contiguous()
 
-        anchors = [(a[0] / stride, a[1] / stride) for a in self.anchors]
-        anchors = torch.FloatTensor(anchors)
-
-        x_center = torch.sigmoid(x[..., 0])
-        y_center = torch.sigmoid(x[..., 1])
+        anchors = torch.FloatTensor(
+            [(a[0] / stride, a[1] / stride) for a in self.anchors])
 
         width = torch.exp(x[..., 2]) * \
             anchors[:, 0].view(1, n_anchors, 1, 1)
@@ -59,8 +56,10 @@ class Yolo(nn.Module):
         grid_offsets_y = torch.arange(grid_size).repeat(grid_size, 1).t().view(
             1, 1, grid_size, grid_size)
 
-        x[..., 0] = x_center + grid_offsets_x.type(torch.FloatTensor)
-        x[..., 1] = y_center + grid_offsets_y.type(torch.FloatTensor)
+        x[..., 0] = torch.sigmoid(x[..., 0]) + \
+            grid_offsets_x.type(torch.FloatTensor)
+        x[..., 1] = torch.sigmoid(x[..., 1]) + \
+            grid_offsets_y.type(torch.FloatTensor)
         x[..., 2] = width
         x[..., 3] = height
         x[..., 4] = obj_conf
