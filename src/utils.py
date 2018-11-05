@@ -81,8 +81,8 @@ def write_detections_cam(detections, img, size, class_colors, class_to_names):
 
 def _write_detection(img, detections, class_colors, class_to_names):
     for d in detections:
-        x1, y1, x2, y2 = d[:4].numpy()
-        class_pred = int(d[-1].numpy())
+        x1, y1, x2, y2 = d[:4].cpu().numpy()
+        class_pred = int(d[-1].cpu().numpy())
         img = cv2.rectangle(img, (x1, y1), (x2, y2),
                             class_colors[class_pred],
                             lineType=cv2.LINE_AA,

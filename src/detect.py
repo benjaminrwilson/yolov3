@@ -13,7 +13,7 @@ def test(opts):
     # Create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = models.Darknet(opts.cfg, opts.weights,
-                           opts.nms, opts.obj, opts.size).to(device)
+                           opts.nms, opts.obj, opts.size, device).to(device)
 
     dataset = YoloDataset(opts.src, opts.size)
     dataloader = torch.utils.data.DataLoader(dataset,
@@ -27,12 +27,13 @@ def test(opts):
     model.eval()
     with torch.no_grad():
         if opts.mode == "images":
-            run_detect(model, dataloader, opts, class_colors, class_to_names)
+            run_detect(model, dataloader, opts, class_colors, class_to_names, device)
         elif opts.mode == "cam":
             run_cam_detect(model,
                            opts,
                            class_colors,
-                           class_to_names)
+                           class_to_names,
+                           device)
         elif opts.mode == "map":
             run_detect(model,
                        opts,
@@ -41,10 +42,13 @@ def test(opts):
                        True)
 
 
-def run_detect(model, dataloader, opts, class_colors, class_to_names,
+def run_detect(model, dataloader, opts, class_colors,
+                class_to_names,
+                device,
                use_map=False):
     for i, (img, img_name) in enumerate(dataloader):
         start_time = time.time()
+        img = img.to(device)
         detections = model(img)
         detections = detections.view(-1, 7)
         if use_map:
@@ -62,13 +66,13 @@ def run_detect(model, dataloader, opts, class_colors, class_to_names,
         print(info)
 
 
-def run_cam_detect(model, opts, class_colors, class_to_names):
+def run_cam_detect(model, opts, class_colors, class_to_names, device):
     cap = cv2.VideoCapture(0)
     while True:
         ret, frame = cap.read()
         if ret:
             start_time = time.time()
-            img = utils.transform_input(frame, opts.size).unsqueeze(0)
+            img = utils.transform_input(frame, opts.size).unsqueeze(0).to(device)
             detections = model(img)
 
             utils.write_detections_cam(
@@ -94,7 +98,7 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=416)
+        '-s', '--size', help='Input size', default=608)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(

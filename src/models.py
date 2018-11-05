@@ -25,13 +25,18 @@ class Route(nn.Module):
 
 class Yolo(nn.Module):
     def __init__(self, anchors, num_classes, input_width, input_height,
-                 stride):
+                 stride, device):
         super(Yolo, self).__init__()
         self.anchors = torch.FloatTensor(
-            [(a[0] / stride, a[1] / stride) for a in anchors])
+            [(a[0] / stride, a[1] / stride) for a in anchors]).to(device)
         self.num_classes = num_classes
         self.input_width = input_width
         self.input_height = input_height
+        self.grid_size = self.input_width // stride
+        self.grid_offsets_x = torch.arange(self.grid_size).repeat(self.grid_size, 1).view(
+            1, 1, self.grid_size, self.grid_size).float().to(device)
+        self.grid_offsets_y = torch.arange(self.grid_size).repeat(self.grid_size, 1).t().view(
+            1, 1, self.grid_size, self.grid_size).float().to(device)
         self.stride = stride
 
     def forward(self, x):
@@ -42,16 +47,8 @@ class Yolo(nn.Module):
         x = x.view(batch_size, n_anchors, grid_attr, grid_size,
                    grid_size).permute(0, 1, 3, 4, 2).contiguous()
 
-        grid_offsets_x = torch.arange(grid_size).repeat(grid_size, 1).view(
-            1, 1, grid_size, grid_size)
-
-        grid_offsets_y = torch.arange(grid_size).repeat(grid_size, 1).t().view(
-            1, 1, grid_size, grid_size)
-
-        x[..., 0] = torch.sigmoid(x[..., 0]) + \
-            grid_offsets_x.type(torch.FloatTensor)
-        x[..., 1] = torch.sigmoid(x[..., 1]) + \
-            grid_offsets_y.type(torch.FloatTensor)
+        x[..., 0] = torch.sigmoid(x[..., 0]) + self.grid_offsets_x
+        x[..., 1] = torch.sigmoid(x[..., 1]) + self.grid_offsets_y
         x[..., 2] = torch.exp(x[..., 2]) * \
             self.anchors[:, 0].view(1, n_anchors, 1, 1)
         x[..., 3] = torch.exp(x[..., 3]) * \
@@ -67,11 +64,11 @@ class Yolo(nn.Module):
 
 
 class Darknet(nn.Module):
-    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size):
+    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size, device):
         super(Darknet, self).__init__()
         self.blocks = utils.parse_cfg(cfg_file)
         self.net_meta, self.layers, self.num_classes = create_layers(
-            self.blocks, size)
+            self.blocks, size, device)
         self.nms_thresh = nms_thresh
         self.obj_thresh = obj_thresh
 
@@ -198,7 +195,7 @@ class Darknet(nn.Module):
         return detections
 
 
-def create_layers(cfg, size):
+def create_layers(cfg, size, device):
     net_meta = cfg[0]
     modules = nn.ModuleList()
 
@@ -269,7 +266,7 @@ def create_layers(cfg, size):
             name = "yolo_{}".format(i)
             module.add_module(name, Yolo(
                 anchors, num_classes, input_width, input_height,
-                strides[stride_idx]))
+                strides[stride_idx], device))
             stride_idx += 1
         if out_channels:
             in_channels.append(out_channels)
