@@ -76,13 +76,13 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Supression threshold', default=.4)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=288)
+        '-s', '--size', help='Input size', default=416)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-uc', '--use_cam', help='Use video camera for demo', default=True)
+        '-uc', '--use_cam', help='Use video camera for demo', default=False)
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../cfg/coco.names")
