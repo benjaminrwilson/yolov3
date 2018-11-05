@@ -131,7 +131,7 @@ def transform_input(img, img_size):
 def generate_class_colors(num_classes):
     colors = np.zeros([num_classes, 3])
     for i in range(num_classes):
-        colors[i] = np.random.randint(0, 266, 3)
+        colors[i] = np.random.randint(0, 256, 3)
     return colors
 
 

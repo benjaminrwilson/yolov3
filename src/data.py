@@ -1,10 +1,9 @@
 import os
 
 import cv2
-import numpy as np
-import torch
-import utils
 from torch.utils.data.dataset import Dataset
+
+import utils
 
 
 class YoloDataset(Dataset):
