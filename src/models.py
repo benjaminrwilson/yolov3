@@ -114,7 +114,6 @@ class Darknet(nn.Module):
             ptr = 0
             n_layers = len(self.layers)
             for i in range(n_layers):
-
                 b_type = self.blocks[i + 1]["type"]
                 if b_type == "convolutional":
                     batch_normalize = "batch_normalize" in self.blocks[i + 1]
@@ -227,7 +226,12 @@ def create_layers(cfg, size):
 
             name = "conv2d_{}".format(i)
             module.add_module(name, nn.Conv2d(
-                in_channels[-1], out_channels, kernel_size, stride, padding, bias=not bn))
+                                    in_channels[-1],
+                                    out_channels,
+                                    kernel_size,
+                                    stride,
+                                    padding,
+                                    bias=not bn))
 
             if bn:
                 name = "batch_norm_{}".format(i)
