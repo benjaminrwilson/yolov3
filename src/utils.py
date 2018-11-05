@@ -76,7 +76,6 @@ def write_detections_cam(detections, img, size, class_colors, class_to_names):
         height, width = img.shape[0:2]
         detections = transform_detections(detections, width, height, size)
         _write_detection(img, detections, class_colors, class_to_names)
-
     cv2.imshow('img', img)
 
 
@@ -89,9 +88,10 @@ def _write_detection(img, detections, class_colors, class_to_names):
         img = cv2.putText(img, class_to_names[class_pred],
                           (x1, y1),
                           cv2.FONT_HERSHEY_DUPLEX,
-                          1,
+                          2,
                           (255, 255, 255),
                           2)
+    return img
 
 
 def transform_detections(detections, width, height, size):
@@ -115,7 +115,7 @@ def transform_input(img, img_size):
     height, width = img.shape[:2]
     if height > width:
         pad_top = int(np.ceil((height - width) / 2))
-        pad_bot = (width - height) // 2
+        pad_bot = (height - width) // 2
         img = cv2.copyMakeBorder(
             img, 0, 0, pad_top, pad_bot, cv2.BORDER_CONSTANT, value=(127.5, 127.5, 127.5))
     else:

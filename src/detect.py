@@ -68,7 +68,7 @@ def main():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-uc', '--use_cam', help='Use video camera for demo', default=True)
+        '-uc', '--use_cam', help='Use video camera for demo', default=False)
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes', default="../cfg/coco.names")
     opts = opts.parse_args()
