@@ -108,7 +108,7 @@ class Darknet(nn.Module):
 
     def load_weights(self, weights_file):
         with open(weights_file, "rb") as wf:
-            meta = np.fromfile(wf, np.int32, 5)
+            np.fromfile(wf, np.int32, 5)
             weights = np.fromfile(wf, np.float32)
 
             ptr = 0
@@ -130,17 +130,17 @@ class Darknet(nn.Module):
                         ptr += n_biases
 
                         tensor_shape = batch_norm.weight.data.shape
-                        layer_weights = torch.from_numpy(
+                        layer_weights = torch.as_tensor(
                             weights[ptr: ptr + n_biases]).view(tensor_shape)
                         ptr += n_biases
 
                         tensor_shape = batch_norm.running_mean.shape
-                        running_mean = torch.from_numpy(
+                        running_mean = torch.as_tensor(
                             weights[ptr: ptr + n_biases]).view(tensor_shape)
                         ptr += n_biases
 
                         tensor_shape = batch_norm.running_var.shape
-                        running_var = torch.from_numpy(
+                        running_var = torch.as_tensor(
                             weights[ptr: ptr + n_biases]).view(tensor_shape)
                         ptr += n_biases
 
@@ -151,20 +151,20 @@ class Darknet(nn.Module):
                     else:
                         n_biases = convolutional.bias.numel()
                         tensor_shape = convolutional.bias.shape
-                        biases = torch.from_numpy(
+                        biases = torch.as_tensor(
                             weights[ptr: ptr + n_biases]).view(tensor_shape)
                         convolutional.bias.data.copy_(biases)
                         ptr += n_biases
                     n_weights = convolutional.weight.numel()
                     tensor_shape = convolutional.weight.shape
-                    layer_weights = torch.from_numpy(
+                    layer_weights = torch.as_tensor(
                         weights[ptr: ptr + n_weights]).view(tensor_shape)
                     convolutional.weight.data.copy_(layer_weights)
                     ptr += n_weights
 
     def nms(self, x, multi_nms=False):
         n_batches = x.shape[0]
-        for i in range(n_batches):
+        for _ in range(n_batches):
             preds = x[x[..., 4] > self.obj_thresh]
             detections = []
             if preds.shape[0] > 0:
@@ -185,7 +185,6 @@ class Darknet(nn.Module):
                             preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
                         pred_cls = pred_cls[conf_idx]
 
-                        n_det = pred_cls.shape[0]
                         detections.append(pred_cls[0])
                         while pred_cls.shape[0] > 0:
                             ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
