@@ -29,7 +29,7 @@ in the weights directory
 
 ### Running on Images
 
-Add images to the **images** directory, set **mode** to **images** then run:
+In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
 
 ```
 python detect.py
