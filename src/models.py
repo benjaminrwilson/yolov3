@@ -186,10 +186,8 @@ class Darknet(nn.Module):
                         pred_cls = pred_cls[conf_idx]
 
                         n_det = pred_cls.shape[0]
-                        while pred_cls.shape[0]:
-                            detections.append(pred_cls[0])
-                            if pred_cls.shape[0] == 1:
-                                break
+                        detections.append(pred_cls[0])
+                        while pred_cls.shape[0] > 0:
                             ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
                             iou_mask = ious < self.nms_thresh
                             pred_cls = pred_cls[1:][iou_mask]
@@ -199,10 +197,9 @@ class Darknet(nn.Module):
                     pred_cls = preds[conf_idx]
 
                     n_det = pred_cls.shape[0]
-                    while pred_cls.shape[0]:
+                    detections.append(pred_cls[0])
+                    while pred_cls.shape[0] > 0:
                         detections.append(pred_cls[0])
-                        if pred_cls.shape[0] == 1:
-                            break
                         ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
                         iou_mask = ious < self.nms_thresh
                         pred_cls = pred_cls[1:][iou_mask]
