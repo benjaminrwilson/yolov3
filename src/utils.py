@@ -84,13 +84,16 @@ def _write_detection(img, detections, class_colors, class_to_names):
         x1, y1, x2, y2 = d[:4].numpy()
         class_pred = int(d[-1].numpy())
         img = cv2.rectangle(img, (x1, y1), (x2, y2),
-                            class_colors[class_pred], thickness=3)
+                            class_colors[class_pred],
+                            lineType=cv2.LINE_AA,
+                            thickness=3)
         img = cv2.putText(img, class_to_names[class_pred],
-                          (x1, y1),
-                          cv2.FONT_HERSHEY_DUPLEX,
-                          2,
+                          (x1, int(y1 + 5)),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          1,
                           (255, 255, 255),
-                          2)
+                          1,
+                          lineType=cv2.LINE_AA)
     return img
 
 

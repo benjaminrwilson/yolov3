@@ -2,7 +2,6 @@ import argparse
 import time
 
 import cv2
-import numpy as np
 import torch
 
 import models
@@ -18,7 +17,8 @@ def test(opts):
 
     dataset = YoloDataset(opts.src, opts.size)
     dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=1, shuffle=True,
+                                             batch_size=1,
+                                             shuffle=True,
                                              num_workers=4)
 
     class_colors = utils.generate_class_colors(model.num_classes)
@@ -38,7 +38,8 @@ def test(opts):
 
 
 def run_detect(model, dataloader, opts, class_colors, class_to_names):
-    for (img, img_name) in dataloader:
+    for i, (img, img_name) in enumerate(dataloader):
+        start_time = time.time()
         detections = model(img)
         detections = detections.view(-1, 7)
         utils.write_detections(
@@ -48,6 +49,9 @@ def run_detect(model, dataloader, opts, class_colors, class_to_names):
             opts.dst,
             class_colors,
             class_to_names)
+        elapsed = round(time.time() - start_time, 2)
+        info = "Processed image {} in {} seconds".format(i, elapsed)
+        print(info)
 
 
 def run_cam_detect(model, opts, class_colors, class_to_names):
@@ -87,10 +91,13 @@ def main():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-m', '--mode', help='Use video camera for demo', default="cam")
+        '-m', '--mode', help='Use video camera for demo', default="images")
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../cfg/coco.names")
+    opts.add_argument(
+        '-a', '--ann_path', help='Path to annotations of the images',
+        default="../annotations/")
     opts = opts.parse_args()
     test(opts)
 
