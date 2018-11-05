@@ -14,7 +14,7 @@ def test(opts):
     # Create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = models.Darknet(opts.cfg, opts.weights,
-                           opts.nms, opts.obj, opts.size)
+                           opts.nms, opts.obj, opts.size).to(device)
 
     dataset = YoloDataset(opts.src, opts.size)
     dataloader = torch.utils.data.DataLoader(dataset,
