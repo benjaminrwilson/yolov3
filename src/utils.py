@@ -1,4 +1,5 @@
 import os
+import time
 
 import cv2
 import numpy as np
@@ -141,3 +142,15 @@ def get_class_names(names_path):
     for i, n in enumerate(names):
         class_to_names[i] = n
     return class_to_names
+
+
+def write_fps(frame, start_time):
+    x, y = 0, frame.shape[0]
+    fps = round(1 / (time.time() - start_time), 2)
+    stats = "FPS: {}".format(fps)
+    cv2.putText(frame, stats,
+                (x, y),
+                cv2.FONT_HERSHEY_DUPLEX,
+                1,
+                (255, 255, 255),
+                2)

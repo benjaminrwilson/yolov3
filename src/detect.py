@@ -1,12 +1,12 @@
 import argparse
+import time
 
 import cv2
 import numpy as np
 import torch
-import utils
-import time
 
 import models
+import utils
 from data import YoloDataset
 
 
@@ -20,10 +20,11 @@ def test(opts):
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=1, shuffle=True,
                                              num_workers=4)
-    model.eval()
 
     class_colors = utils.generate_class_colors(model.num_classes)
     class_to_names = utils.get_class_names(opts.names_path)
+
+    model.eval()
     with torch.no_grad():
         if not opts.use_cam:
             run_detect(model, dataloader, opts, class_colors, class_to_names)
@@ -55,18 +56,11 @@ def run_cam_detect(model, opts, class_colors, class_to_names):
             start_time = time.time()
             img = utils.transform_input(frame, opts.size).unsqueeze(0)
             detections = model(img)
+
             utils.write_detections_cam(
                 detections, frame, opts.size, class_colors, class_to_names)
-            if show_fps:
-                x, y = 0, frame.shape[0]
-                fps = round(1 / (time.time() - start_time), 2)
-                stats = "FPS: {}".format(fps)
-                cv2.putText(frame, stats,
-                            (x, y),
-                            cv2.FONT_HERSHEY_DUPLEX,
-                            1,
-                            (255, 255, 255),
-                            2)
+            utils.write_fps(frame, start_time)
+
             cv2.imshow('img', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -88,7 +82,7 @@ def main():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-uc', '--use_cam', help='Use video camera for demo', default=False)
+        '-uc', '--use_cam', help='Use video camera for demo', default=True)
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../cfg/coco.names")
