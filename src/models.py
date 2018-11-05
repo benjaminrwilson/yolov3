@@ -43,13 +43,6 @@ class Yolo(nn.Module):
         anchors = torch.FloatTensor(
             [(a[0] / stride, a[1] / stride) for a in self.anchors])
 
-        width = torch.exp(x[..., 2]) * \
-            anchors[:, 0].view(1, n_anchors, 1, 1)
-        height = torch.exp(x[..., 3]) * \
-            anchors[:, 1].view(1, n_anchors, 1, 1)
-        obj_conf = torch.sigmoid(x[..., 4])
-        cls_pred = x[..., 5:]
-
         grid_offsets_x = torch.arange(grid_size).repeat(grid_size, 1).view(
             1, 1, grid_size, grid_size)
 
@@ -60,10 +53,12 @@ class Yolo(nn.Module):
             grid_offsets_x.type(torch.FloatTensor)
         x[..., 1] = torch.sigmoid(x[..., 1]) + \
             grid_offsets_y.type(torch.FloatTensor)
-        x[..., 2] = width
-        x[..., 3] = height
-        x[..., 4] = obj_conf
-        x[..., 5:] = cls_pred
+        x[..., 2] = torch.exp(x[..., 2]) * \
+            anchors[:, 0].view(1, n_anchors, 1, 1)
+        x[..., 3] = torch.exp(x[..., 3]) * \
+            anchors[:, 1].view(1, n_anchors, 1, 1)
+        x[..., 4] = torch.sigmoid(x[..., 4])
+        x[..., 5:] = torch.sigmoid(x[..., 5:])
 
         x[..., :4] *= stride
         x = torch.cat((x[..., :4].view(batch_size, -1, 4),
@@ -169,7 +164,6 @@ class Darknet(nn.Module):
             if preds.shape[0] > 0:
                 preds = utils.darknet2corners(preds)
                 max_conf_cls, max_conf = torch.torch.max(preds[..., 5:], 1)
-                max_conf_cls = torch.sigmoid(max_conf_cls)
 
                 max_conf_cls = max_conf_cls.float().unsqueeze(1)
                 max_conf = max_conf.float().unsqueeze(1)
@@ -181,7 +175,8 @@ class Darknet(nn.Module):
                     for img_cls in img_classes:
                         pred_cls = preds[preds[..., -1] == img_cls]
                         conf_idx = torch.sort(
-                            preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
+                            preds[preds[..., -1] == img_cls][..., 4],
+                            descending=True)[1]
                         pred_cls = pred_cls[conf_idx]
                 else:
                     conf_idx = torch.sort(
@@ -194,12 +189,13 @@ class Darknet(nn.Module):
         return detections
 
     def _nms_helper(self, detections, pred_cls, nms_thresh):
-        if pred_cls.shape[0] > 0:
+        while pred_cls.shape[0] > 0:
             detections.append(pred_cls[0])
-            while pred_cls.shape[0] > 0:
-                ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
-                iou_mask = ious < nms_thresh
-                pred_cls = pred_cls[1:][iou_mask]
+            if pred_cls.shape[0] == 1:
+                break
+            ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
+            iou_mask = ious < nms_thresh
+            pred_cls = pred_cls[1:][iou_mask]
         return detections
 
 
