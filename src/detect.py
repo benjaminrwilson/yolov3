@@ -26,13 +26,15 @@ def test(opts):
 
     model.eval()
     with torch.no_grad():
-        if not opts.use_cam:
+        if opts.mode == "images":
             run_detect(model, dataloader, opts, class_colors, class_to_names)
-        else:
+        elif opts.mode == "cam":
             run_cam_detect(model,
                            opts,
                            class_colors,
                            class_to_names)
+        elif opts.mode == "map":
+            run_map(model, dataloader, opts)
 
 
 def run_detect(model, dataloader, opts, class_colors, class_to_names):
@@ -65,6 +67,9 @@ def run_cam_detect(model, opts, class_colors, class_to_names):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+def run_map(model, dataloader, opts):
+    pass
+
 
 def main():
     opts = argparse.ArgumentParser(description='Yolov3 Detection')
@@ -74,7 +79,7 @@ def main():
                       default="../weights/yolov3.weights")
     opts.add_argument('-o', '--obj', help='Objectness threshold', default=.5)
     opts.add_argument(
-        '-n', '--nms', help='Non-maximum Supression threshold', default=.4)
+        '-n', '--nms', help='Non-maximum Supression threshold', default=.45)
     opts.add_argument(
         '-s', '--size', help='Input size', default=416)
     opts.add_argument(
@@ -82,7 +87,7 @@ def main():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-uc', '--use_cam', help='Use video camera for demo', default=False)
+        '-m', '--mode', help='Use video camera for demo', default="cam")
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../cfg/coco.names")
