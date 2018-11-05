@@ -183,26 +183,23 @@ class Darknet(nn.Module):
                         conf_idx = torch.sort(
                             preds[preds[..., -1] == img_cls][..., 4], descending=True)[1]
                         pred_cls = pred_cls[conf_idx]
-
-                        detections.append(pred_cls[0])
-                        while pred_cls.shape[0] > 0:
-                            ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
-                            iou_mask = ious < self.nms_thresh
-                            pred_cls = pred_cls[1:][iou_mask]
                 else:
                     conf_idx = torch.sort(
                         preds[..., 4], descending=True)[1]
                     pred_cls = preds[conf_idx]
 
-                    n_det = pred_cls.shape[0]
-                    detections.append(pred_cls[0])
-                    while pred_cls.shape[0] > 0:
-                        detections.append(pred_cls[0])
-                        ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
-                        iou_mask = ious < self.nms_thresh
-                        pred_cls = pred_cls[1:][iou_mask]
-
+                detections = self._nms_helper(
+                    detections, pred_cls, self.nms_thresh)
                 detections = torch.cat(detections, 0)
+        return detections
+
+    def _nms_helper(self, detections, pred_cls, nms_thresh):
+        if pred_cls.shape[0] > 0:
+            detections.append(pred_cls[0])
+            while pred_cls.shape[0] > 0:
+                ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
+                iou_mask = ious < nms_thresh
+                pred_cls = pred_cls[1:][iou_mask]
         return detections
 
 
@@ -226,12 +223,12 @@ def create_layers(cfg, size):
 
             name = "conv2d_{}".format(i)
             module.add_module(name, nn.Conv2d(
-                                    in_channels[-1],
-                                    out_channels,
-                                    kernel_size,
-                                    stride,
-                                    padding,
-                                    bias=not bn))
+                in_channels[-1],
+                out_channels,
+                kernel_size,
+                stride,
+                padding,
+                bias=not bn))
 
             if bn:
                 name = "batch_norm_{}".format(i)
