@@ -76,7 +76,6 @@ def write_detections_cam(detections, img, size, class_colors, class_to_names):
         height, width = img.shape[0:2]
         detections = transform_detections(detections, width, height, size)
         _write_detection(img, detections, class_colors, class_to_names)
-    cv2.imshow('img', img)
 
 
 def _write_detection(img, detections, class_colors, class_to_names):

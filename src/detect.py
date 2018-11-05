@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import torch
 import utils
+import time
 
 import models
 from data import YoloDataset
@@ -11,6 +12,7 @@ from data import YoloDataset
 
 def test(opts):
     # Create model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = models.Darknet(opts.cfg, opts.weights,
                            opts.nms, opts.obj, opts.size)
 
@@ -45,15 +47,27 @@ def run_detect(model, dataloader, opts, class_colors, class_to_names):
             class_to_names)
 
 
-def run_cam_detect(model, opts, class_colors, class_to_names, show_fps):
+def run_cam_detect(model, opts, class_colors, class_to_names):
     cap = cv2.VideoCapture(0)
     while True:
         ret, frame = cap.read()
         if ret:
+            start_time = time.time()
             img = utils.transform_input(frame, opts.size).unsqueeze(0)
             detections = model(img)
             utils.write_detections_cam(
                 detections, frame, opts.size, class_colors, class_to_names)
+            if show_fps:
+                x, y = 0, frame.shape[0]
+                fps = round(1 / (time.time() - start_time), 2)
+                stats = "FPS: {}".format(fps)
+                cv2.putText(frame, stats,
+                            (x, y),
+                            cv2.FONT_HERSHEY_DUPLEX,
+                            1,
+                            (255, 255, 255),
+                            2)
+            cv2.imshow('img', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -68,7 +82,7 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Supression threshold', default=.4)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=352)
+        '-s', '--size', help='Input size', default=288)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(
