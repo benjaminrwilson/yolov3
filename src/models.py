@@ -54,13 +54,13 @@ class Yolo(nn.Module):
         cls_pred = x[..., 5:]
 
         grid_offsets_x = torch.arange(grid_size).repeat(grid_size, 1).view(
-            [1, 1, grid_size, grid_size]).type(torch.FloatTensor)
+            1, 1, grid_size, grid_size)
 
         grid_offsets_y = torch.arange(grid_size).repeat(grid_size, 1).t().view(
-            [1, 1, grid_size, grid_size]).type(torch.FloatTensor)
+            1, 1, grid_size, grid_size)
 
-        x[..., 0] = x_center + grid_offsets_x
-        x[..., 1] = y_center + grid_offsets_y
+        x[..., 0] = x_center + grid_offsets_x.type(torch.FloatTensor)
+        x[..., 1] = y_center + grid_offsets_y.type(torch.FloatTensor)
         x[..., 2] = width
         x[..., 3] = height
         x[..., 4] = obj_conf
