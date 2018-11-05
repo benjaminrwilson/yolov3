@@ -34,21 +34,29 @@ def test(opts):
                            class_colors,
                            class_to_names)
         elif opts.mode == "map":
-            run_map(model, dataloader, opts)
+            run_detect(model,
+                       opts,
+                       class_colors,
+                       class_to_names,
+                       True)
 
 
-def run_detect(model, dataloader, opts, class_colors, class_to_names):
+def run_detect(model, dataloader, opts, class_colors, class_to_names,
+               use_map=False):
     for i, (img, img_name) in enumerate(dataloader):
         start_time = time.time()
         detections = model(img)
         detections = detections.view(-1, 7)
-        utils.write_detections(
-            detections,
-            img_name[0],
-            opts.size,
-            opts.dst,
-            class_colors,
-            class_to_names)
+        if use_map:
+            utils.calculate_map(detections)
+        else:
+            utils.write_detections(
+                detections,
+                img_name[0],
+                opts.size,
+                opts.dst,
+                class_colors,
+                class_to_names)
         elapsed = round(time.time() - start_time, 2)
         info = "Processed image {} in {} seconds".format(i, elapsed)
         print(info)
@@ -71,6 +79,7 @@ def run_cam_detect(model, opts, class_colors, class_to_names):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+
 def run_map(model, dataloader, opts):
     pass
 
@@ -83,7 +92,7 @@ def main():
                       default="../weights/yolov3.weights")
     opts.add_argument('-o', '--obj', help='Objectness threshold', default=.5)
     opts.add_argument(
-        '-n', '--nms', help='Non-maximum Supression threshold', default=.45)
+        '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
     opts.add_argument(
         '-s', '--size', help='Input size', default=416)
     opts.add_argument(
@@ -91,7 +100,7 @@ def main():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-m', '--mode', help='Use video camera for demo', default="images")
+        '-m', '--mode', help='Use video camera for demo', default="cam")
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../cfg/coco.names")

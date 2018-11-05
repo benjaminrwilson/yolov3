@@ -24,24 +24,23 @@ class Route(nn.Module):
 
 
 class Yolo(nn.Module):
-    def __init__(self, anchors, num_classes, input_width, input_height):
+    def __init__(self, anchors, num_classes, input_width, input_height,
+                 stride):
         super(Yolo, self).__init__()
-        self.anchors = anchors
+        self.anchors = torch.FloatTensor(
+            [(a[0] / stride, a[1] / stride) for a in anchors])
         self.num_classes = num_classes
         self.input_width = input_width
         self.input_height = input_height
+        self.stride = stride
 
     def forward(self, x):
         batch_size, grid_size = x.shape[0], x.shape[2]
-        stride = self.input_width // grid_size
         grid_attr = self.num_classes + 5
         n_anchors = len(self.anchors)
 
         x = x.view(batch_size, n_anchors, grid_attr, grid_size,
                    grid_size).permute(0, 1, 3, 4, 2).contiguous()
-
-        anchors = torch.FloatTensor(
-            [(a[0] / stride, a[1] / stride) for a in self.anchors])
 
         grid_offsets_x = torch.arange(grid_size).repeat(grid_size, 1).view(
             1, 1, grid_size, grid_size)
@@ -54,13 +53,13 @@ class Yolo(nn.Module):
         x[..., 1] = torch.sigmoid(x[..., 1]) + \
             grid_offsets_y.type(torch.FloatTensor)
         x[..., 2] = torch.exp(x[..., 2]) * \
-            anchors[:, 0].view(1, n_anchors, 1, 1)
+            self.anchors[:, 0].view(1, n_anchors, 1, 1)
         x[..., 3] = torch.exp(x[..., 3]) * \
-            anchors[:, 1].view(1, n_anchors, 1, 1)
+            self.anchors[:, 1].view(1, n_anchors, 1, 1)
         x[..., 4] = torch.sigmoid(x[..., 4])
         x[..., 5:] = torch.sigmoid(x[..., 5:])
 
-        x[..., :4] *= stride
+        x[..., :4] *= self.stride
         x = torch.cat((x[..., :4].view(batch_size, -1, 4),
                        x[..., 4].view(batch_size, -1, 1),
                        x[..., 5:].view(batch_size, -1, self.num_classes)), -1)
@@ -204,6 +203,8 @@ def create_layers(cfg, size):
     modules = nn.ModuleList()
 
     in_channels = [3]
+    strides = [32, 16, 8]
+    stride_idx = 0
     for i, layer in enumerate(cfg[1:]):
         module = nn.Sequential()
         layer_type = layer["type"]
@@ -267,7 +268,9 @@ def create_layers(cfg, size):
 
             name = "yolo_{}".format(i)
             module.add_module(name, Yolo(
-                anchors, num_classes, input_width, input_height))
+                anchors, num_classes, input_width, input_height,
+                strides[stride_idx]))
+            stride_idx += 1
         if out_channels:
             in_channels.append(out_channels)
         else:

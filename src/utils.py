@@ -157,3 +157,6 @@ def write_fps(frame, start_time):
                 1,
                 (255, 255, 255),
                 2)
+
+def calculate_map(detections):
+    pass
