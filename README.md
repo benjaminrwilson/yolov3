@@ -2,6 +2,8 @@
 
 https://arxiv.org/pdf/1804.02767.pdf
 
+<img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+
 ### Prerequisites
 
 ```
@@ -16,6 +18,14 @@ torchvision 0.2.1
 ```
 pip install -r requirements.txt
 ```
+
+### Get the COCO Weights
+
+```
+sh get_yolov3_weights.sh
+```
+
+in the weights directory
 
 ### Running on Images
 
@@ -33,6 +43,7 @@ In **detect.py** set **use_cam** to True. Then run:
 python detect.py
 ```
 
-# Example Output
+## Future Improvements
 
-<img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+- [ ] Cuda Support
+- [ ] Training Support
