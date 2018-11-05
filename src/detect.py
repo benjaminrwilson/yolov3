@@ -20,13 +20,20 @@ def test(opts):
                                              num_workers=4)
     model.eval()
 
+    class_colors = utils.generate_class_colors(model.num_classes)
+    class_to_names = utils.get_class_names(opts.names_path)
     with torch.no_grad():
         if not opts.use_cam:
             for (img, img_name) in dataloader:
                 detections = model(img)
                 detections = detections.view(-1, 7)
                 utils.write_detections(
-                    detections, img_name[0], opts.size, opts.dst)
+                    detections,
+                    img_name[0],
+                    opts.size,
+                    opts.dst,
+                    class_colors,
+                    class_to_names)
         else:
             cap = cv2.VideoCapture(0)
             while True:
@@ -35,7 +42,8 @@ def test(opts):
                     img = utils.transform_input(frame, opts.size).unsqueeze(0)
                     detections = model(img)
                     detections = detections.view(-1, 7)
-                    utils.write_detections_cam(detections, frame, opts.size)
+                    utils.write_detections_cam(
+                        detections, frame, opts.size, class_colors, class_to_names)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
@@ -50,13 +58,15 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Supression threshold', default=.4)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=288)
+        '-s', '--size', help='Input size', default=608)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
         '-uc', '--use_cam', help='Use video camera for demo', default=False)
+    opts.add_argument(
+        '-np', '--names_path', help='Path to names of classes', default="../cfg/coco.names")
     opts = opts.parse_args()
     test(opts)
 

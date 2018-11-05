@@ -58,34 +58,48 @@ def bb_nms(bb1, bb2):
     return iou
 
 
-def write_detections(detections, img_path, size, dst):
+def write_detections(detections, img_path, size, dst, class_colors,
+                     class_to_names):
     img = cv2.imread(img_path)
     height, width = img.shape[0:2]
     detections = transform_detections(detections, width, height, size)
     for d in detections:
         x1, y1, x2, y2 = d[:4].numpy()
+        class_pred = int(d[-1].numpy())
         img = cv2.rectangle(img, (x1, y1), (x2, y2),
-                            (255, 255, 255), thickness=3)
+                            class_colors[class_pred], thickness=3)
+        img = cv2.putText(img, class_to_names[class_pred],
+                          (x1, y1),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          1,
+                          (255, 255, 255),
+                          2)
+
     img_name = img_path.split("/")[-1]
     dst = os.path.join(dst, img_name)
     cv2.imwrite(dst, img)
 
 
-def write_detections_cam(detections, img, size):
+def write_detections_cam(detections, img, size, class_colors, class_to_names):
     height, width = img.shape[0:2]
     detections = transform_detections(detections, width, height, size)
     for d in detections:
         x1, y1, x2, y2 = d[:4].numpy()
-        print(img.shape)
+        class_pred = int(d[-1].numpy())
         img = cv2.rectangle(img, (x1, y1), (x2, y2),
-                            (255, 255, 255), thickness=2)
+                            class_colors[class_pred], thickness=3)
+        img = cv2.putText(img, class_to_names[class_pred],
+                          (x1, y1),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          1,
+                          (255, 255, 255),
+                          2)
     cv2.imshow('img', img)
-    cv2.waitKey(1)
 
 
 def transform_detections(detections, width, height, size):
     ratio = max(width, height) / size
-    detections *= ratio
+    detections[..., :4] *= ratio
     if width > height:
         pad = np.ceil((width - height) / 2)
         detections[..., 1] -= pad
@@ -96,6 +110,7 @@ def transform_detections(detections, width, height, size):
         detections[..., 2] -= pad
 
     return detections
+
 
 def transform_input(img, img_size):
     data_transform = transforms.Compose([
@@ -114,3 +129,19 @@ def transform_input(img, img_size):
     img = cv2.resize(img, (img_size, img_size))
     img = data_transform(img)
     return img
+
+
+def generate_class_colors(num_classes):
+    colors = np.zeros([num_classes, 3])
+    for i in range(num_classes):
+        colors[i] = np.random.randint(0, 266, 3)
+    return colors
+
+
+def get_class_names(names_path):
+    with open(names_path, "r") as nf:
+        names = nf.read().splitlines()
+    class_to_names = {}
+    for i, n in enumerate(names):
+        class_to_names[i] = n
+    return class_to_names

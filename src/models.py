@@ -77,7 +77,8 @@ class Darknet(nn.Module):
     def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size):
         super(Darknet, self).__init__()
         self.blocks = utils.parse_cfg(cfg_file)
-        self.net_meta, self.layers = create_layers(self.blocks, size)
+        self.net_meta, self.layers, self.num_classes = create_layers(
+            self.blocks, size)
         self.nms_thresh = nms_thresh
         self.obj_thresh = obj_thresh
 
@@ -206,7 +207,7 @@ class Darknet(nn.Module):
                     ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
                     iou_mask = ious < self.nms_thresh
                     pred_cls = pred_cls[1:][iou_mask]
-            
+
             detections = torch.cat(detections, 0)
         return detections
 
@@ -280,4 +281,4 @@ def create_layers(cfg, size):
         else:
             in_channels.append(in_channels[-1])
         modules.append(module)
-    return net_meta, modules
+    return net_meta, modules, num_classes
