@@ -45,5 +45,5 @@ python detect.py
 
 ## Future Improvements
 
-- [ ] Cuda Support
+- [x] Cuda Support
 - [ ] Training Support
