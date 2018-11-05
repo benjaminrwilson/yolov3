@@ -26,7 +26,11 @@ def test(opts):
         if not opts.use_cam:
             run_detect(model, dataloader, opts, class_colors, class_to_names)
         else:
-            run_cam_detect(model, dataloader, opts, class_colors, class_to_names)
+            run_cam_detect(model,
+                           opts,
+                           class_colors,
+                           class_to_names)
+
 
 def run_detect(model, dataloader, opts, class_colors, class_to_names):
     for (img, img_name) in dataloader:
@@ -40,7 +44,8 @@ def run_detect(model, dataloader, opts, class_colors, class_to_names):
             class_colors,
             class_to_names)
 
-def run_cam_detect(model, dataloader, opts, class_colors, class_to_names):
+
+def run_cam_detect(model, opts, class_colors, class_to_names, show_fps):
     cap = cv2.VideoCapture(0)
     while True:
         ret, frame = cap.read()
@@ -51,6 +56,7 @@ def run_cam_detect(model, dataloader, opts, class_colors, class_to_names):
                 detections, frame, opts.size, class_colors, class_to_names)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
 
 def main():
     opts = argparse.ArgumentParser(description='Yolov3 Detection')
@@ -70,7 +76,8 @@ def main():
     opts.add_argument(
         '-uc', '--use_cam', help='Use video camera for demo', default=False)
     opts.add_argument(
-        '-np', '--names_path', help='Path to names of classes', default="../cfg/coco.names")
+        '-np', '--names_path', help='Path to names of classes',
+        default="../cfg/coco.names")
     opts = opts.parse_args()
     test(opts)
 
