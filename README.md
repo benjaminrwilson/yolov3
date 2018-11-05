@@ -17,6 +17,14 @@ torchvision 0.2.1
 pip install -r requirements.txt
 ```
 
+### Get the COCO Weights
+
+```
+sh get_yolov3_weights.sh
+```
+
+in the weights directory
+
 ### Running on Images
 
 Add images to the **images** directory, the run:
