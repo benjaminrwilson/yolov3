@@ -29,7 +29,7 @@ in the weights directory
 
 ### Running on Images
 
-Add images to the **images** directory, the run:
+Add images to the **images** directory, set **mode** to **images** then run:
 
 ```
 python detect.py
@@ -37,7 +37,7 @@ python detect.py
 
 ### Running on live video
 
-In **detect.py** set **use_cam** to True. Then run:
+In **detect.py** set **mode** to **cam**. Then run:
 
 ```
 python detect.py
