@@ -35,6 +35,4 @@ python detect.py
 
 # Example Output
 
-Detection on a stock image from Wikipedia:
-
 <img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
