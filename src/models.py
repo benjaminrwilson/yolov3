@@ -24,39 +24,41 @@ class Route(nn.Module):
 
 
 class Yolo(nn.Module):
-    def __init__(self, anchors, num_classes, input_width, input_height,
-                 stride, device):
+    def __init__(self, anchors, num_classes, input_width, input_height, device):
         super(Yolo, self).__init__()
-        self.anchors = torch.FloatTensor(
-            [(a[0] / stride, a[1] / stride) for a in anchors]).to(device)
+        self.anchors = anchors
+        self.device = device
         self.num_classes = num_classes
         self.input_width = input_width
         self.input_height = input_height
-        self.grid_size = self.input_width // stride
-        self.grid_offsets_x = torch.arange(self.grid_size).repeat(self.grid_size, 1).view(
-            1, 1, self.grid_size, self.grid_size).float().to(device)
-        self.grid_offsets_y = torch.arange(self.grid_size).repeat(self.grid_size, 1).t().view(
-            1, 1, self.grid_size, self.grid_size).float().to(device)
-        self.stride = stride
 
     def forward(self, x):
         batch_size, grid_size = x.shape[0], x.shape[2]
         grid_attr = self.num_classes + 5
+        stride = self.input_width // grid_size
         n_anchors = len(self.anchors)
 
         x = x.view(batch_size, n_anchors, grid_attr, grid_size,
                    grid_size).permute(0, 1, 3, 4, 2).contiguous()
 
-        x[..., 0] = torch.sigmoid(x[..., 0]) + self.grid_offsets_x
-        x[..., 1] = torch.sigmoid(x[..., 1]) + self.grid_offsets_y
+        anchors = torch.FloatTensor(
+            [(a[0] / stride, a[1] / stride) for a in self.anchors]).to(self.device)
+
+        grid_offsets_x = torch.arange(grid_size).repeat(grid_size, 1).view(
+            1, 1, grid_size, grid_size).float().to(self.device)
+        grid_offsets_y = torch.arange(grid_size).repeat(grid_size, 1).t().view(
+            1, 1, grid_size, grid_size).float().to(self.device)
+
+        x[..., 0] = torch.sigmoid(x[..., 0]) + grid_offsets_x
+        x[..., 1] = torch.sigmoid(x[..., 1]) + grid_offsets_y
         x[..., 2] = torch.exp(x[..., 2]) * \
-            self.anchors[:, 0].view(1, n_anchors, 1, 1)
+            anchors[:, 0].view(1, n_anchors, 1, 1)
         x[..., 3] = torch.exp(x[..., 3]) * \
-            self.anchors[:, 1].view(1, n_anchors, 1, 1)
+            anchors[:, 1].view(1, n_anchors, 1, 1)
         x[..., 4] = torch.sigmoid(x[..., 4])
         x[..., 5:] = torch.sigmoid(x[..., 5:])
 
-        x[..., :4] *= self.stride
+        x[..., :4] *= stride
         x = torch.cat((x[..., :4].view(batch_size, -1, 4),
                        x[..., 4].view(batch_size, -1, 1),
                        x[..., 5:].view(batch_size, -1, self.num_classes)), -1)
@@ -200,8 +202,6 @@ def create_layers(cfg, size, device):
     modules = nn.ModuleList()
 
     in_channels = [3]
-    strides = [32, 16, 8]
-    stride_idx = 0
     for i, layer in enumerate(cfg[1:]):
         module = nn.Sequential()
         layer_type = layer["type"]
@@ -265,9 +265,7 @@ def create_layers(cfg, size, device):
 
             name = "yolo_{}".format(i)
             module.add_module(name, Yolo(
-                anchors, num_classes, input_width, input_height,
-                strides[stride_idx], device))
-            stride_idx += 1
+                anchors, num_classes, input_width, input_height, device))
         if out_channels:
             in_channels.append(out_channels)
         else:

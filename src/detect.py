@@ -98,7 +98,7 @@ def main():
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
     opts.add_argument(
-        '-s', '--size', help='Input size', default=608)
+        '-s', '--size', help='Input size', default=416)
     opts.add_argument(
         '-src', '--src', help='Source directory', default="../images")
     opts.add_argument(
