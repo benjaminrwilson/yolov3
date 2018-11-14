@@ -184,6 +184,8 @@ class Darknet(nn.Module):
                 detections = self._nms_helper(
                     detections, pred_cls, self.nms_thresh)
                 detections = torch.cat(detections, 0)
+        if len(detections) == 0:
+            detections = torch.Tensor(detections)
         return detections
 
     def _nms_helper(self, detections, pred_cls, nms_thresh):
@@ -191,7 +193,7 @@ class Darknet(nn.Module):
             detections.append(pred_cls[0])
             if pred_cls.shape[0] == 1:
                 break
-            ious = utils.bb_nms(pred_cls[0], pred_cls[1:])
+            ious = utils.bb_iou(pred_cls[0], pred_cls[1:])
             iou_mask = ious < nms_thresh
             pred_cls = pred_cls[1:][iou_mask]
         return detections

@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from torchvision import transforms
+from get_image_size import get_image_size
 
 
 def parse_cfg(cfg_path):
@@ -38,7 +39,7 @@ def darknet2corners(preds):
     return preds
 
 
-def bb_nms(bb1, bb2):
+def bb_iou(bb1, bb2):
     bb1_x1, bb1_y1, bb1_x2, bb1_y2 = bb1[...,
                                          0], bb1[..., 1], bb1[..., 2], bb1[..., 3]
     bb2_x1, bb2_y1, bb2_x2, bb2_y2 = bb2[...,
@@ -62,8 +63,6 @@ def bb_nms(bb1, bb2):
 def write_detections(detections, img_path, size, dst, class_colors,
                      class_to_names):
     img = cv2.imread(img_path)
-    height, width = img.shape[0:2]
-    detections = transform_detections(detections, width, height, size)
     _write_detection(img, detections, class_colors, class_to_names)
 
     img_name = img_path.split("/")[-1]
@@ -158,5 +157,59 @@ def write_fps(frame, start_time):
                 (255, 255, 255),
                 2)
 
-def calculate_map(detections):
-    pass
+
+def calculate_map(ann_path, img_path, results, device, class_colors, class_to_names, size, dst):
+    for img_name, detections in results.items():
+        ann_name = img_name.split("/")[-1].replace(".jpg", ".txt")
+        abs_ann_path = os.path.join(ann_path, ann_name)
+
+        info = "Processing Image {}".format(img_name)
+        print(info)
+
+        ground_truths = []
+        with open(abs_ann_path, "r") as ann_file:
+            lines = ann_file.read().splitlines()
+            abs_img_name = os.path.join(img_path, img_name)
+            img_width, img_height = get_image_size(abs_img_name)
+
+            # Iterate over annotations
+            for line in lines:
+                class_label, x, y, width, height = [
+                    float(x) for x in line.split(" ")]
+
+                # Convert coordinates to top left and bottom right corners
+                x1, y1, x2, y2 = darknet2abs_corners(float(x), float(y), float(
+                    width), float(height), img_width, img_height)
+                coords = torch.Tensor([x1, y1, x2, y2], device=device)
+
+                tp, fp, fn = 0, 0, 0
+                # Get the detections that match the class label
+                cls_index = detections[..., -1] == class_label
+                detection_cls = detections[cls_index]
+                if detection_cls.shape[0] == 0:
+                    continue
+                
+                # Sort the detections by class confidence
+                conf_idx = torch.sort(
+                    detections[cls_index][..., 5],
+                    descending=True)[1]
+                detection_cls = detection_cls[conf_idx]
+
+                # Get ious with respect to ground truth label
+                ious = bb_iou(coords, detection_cls)
+                detections = detections[ious > .5, ...][1:, ...]
+                ground_truths.append([x1, y1, x2, y2, class_label])
+        ground_truths = torch.Tensor(ground_truths)
+
+
+def darknet2abs_corners(x, y, width, height, img_width, img_height):
+    width *= img_width
+    height *= img_height
+    x *= img_width
+    y *= img_height
+
+    x1 = x - (width / 2)
+    y1 = y - (height / 2)
+    x2 = x + (width / 2)
+    y2 = y + (height / 2)
+    return x1, y1, x2, y2

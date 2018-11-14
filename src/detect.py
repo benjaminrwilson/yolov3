@@ -6,7 +6,9 @@ import torch
 
 import models
 import utils
+import os
 from data import YoloDataset
+from get_image_size import get_image_size
 
 
 def test(opts):
@@ -27,7 +29,8 @@ def test(opts):
     model.eval()
     with torch.no_grad():
         if opts.mode == "images":
-            run_detect(model, dataloader, opts, class_colors, class_to_names, device)
+            run_detect(model, dataloader, opts,
+                       class_colors, class_to_names, device)
         elif opts.mode == "cam":
             run_cam_detect(model,
                            opts,
@@ -36,23 +39,31 @@ def test(opts):
                            device)
         elif opts.mode == "map":
             run_detect(model,
+                       dataloader,
                        opts,
                        class_colors,
                        class_to_names,
+                       device,
                        True)
 
 
 def run_detect(model, dataloader, opts, class_colors,
-                class_to_names,
-                device,
+               class_to_names,
+               device,
                use_map=False):
+    results = {}
     for i, (img, img_name) in enumerate(dataloader):
         start_time = time.time()
         img = img.to(device)
         detections = model(img)
-        detections = detections.view(-1, 7)
+        if len(detections) > 0:
+            detections = detections.view(-1, 7)
+            abs_img_path = os.path.join(opts.src, img_name[0])
+            width, height = get_image_size(abs_img_path)
+            detections = utils.transform_detections(
+                detections, width, height, opts.size)
         if use_map:
-            utils.calculate_map(detections)
+            results[img_name[0]] = detections
         else:
             utils.write_detections(
                 detections,
@@ -64,6 +75,15 @@ def run_detect(model, dataloader, opts, class_colors,
         elapsed = round(time.time() - start_time, 2)
         info = "Processed image {} in {} seconds".format(i, elapsed)
         print(info)
+        # if i == 10:
+        #     break
+        break
+    
+    if use_map:
+        print("Not Implemented")
+        return
+        # utils.calculate_map(opts.ann_path, opts.src, results, device,
+        #                     class_colors, class_to_names, opts.size, opts.dst)
 
 
 def run_cam_detect(model, opts, class_colors, class_to_names, device):
@@ -72,7 +92,8 @@ def run_cam_detect(model, opts, class_colors, class_to_names, device):
         ret, frame = cap.read()
         if ret:
             start_time = time.time()
-            img = utils.transform_input(frame, opts.size).unsqueeze(0).to(device)
+            img = utils.transform_input(
+                frame, opts.size).unsqueeze(0).to(device)
             detections = model(img)
 
             utils.write_detections_cam(
