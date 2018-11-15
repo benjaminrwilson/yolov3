@@ -188,7 +188,7 @@ def calculate_map(ann_path, img_path, results, device, class_colors, class_to_na
                 detection_cls = detections[cls_index]
                 if detection_cls.shape[0] == 0:
                     continue
-                
+
                 # Sort the detections by class confidence
                 conf_idx = torch.sort(
                     detections[cls_index][..., 5],
@@ -213,3 +213,18 @@ def darknet2abs_corners(x, y, width, height, img_width, img_height):
     x2 = x + (width / 2)
     y2 = y + (height / 2)
     return x1, y1, x2, y2
+
+
+def get_targets(ann_path, ann_name):
+    abs_ann_path = os.path.join(ann_path, ann_name)
+    with open(abs_ann_path, "r") as ann_file:
+        lines = ann_file.read().splitlines()
+
+        res = []
+        for line in lines:
+            det = line.split(" ")
+            det = [float(x) for x in det]
+            det = det[1:] + [det[0]]
+            res.append(det)
+        res = torch.Tensor(det)
+    return res

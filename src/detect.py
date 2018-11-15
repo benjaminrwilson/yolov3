@@ -1,21 +1,21 @@
 import argparse
+import os
 import time
 
 import cv2
 import torch
+import torch.optim as optim
 
 import models
 import utils
-import os
 from data import YoloDataset
 from get_image_size import get_image_size
+from losses import YoloLoss
 
 
 def test(opts):
     # Create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = models.Darknet(opts.cfg, opts.weights,
-                           opts.nms, opts.obj, opts.size, device).to(device)
 
     dataset = YoloDataset(opts.src, opts.size)
     dataloader = torch.utils.data.DataLoader(dataset,
@@ -23,10 +23,20 @@ def test(opts):
                                              shuffle=True,
                                              num_workers=4)
 
+    training = False
+    if opts.mode == "train":
+        training = True
+
+    model = models.Darknet(opts.cfg, opts.weights,
+                           opts.nms, opts.obj,
+                           opts.size, device,
+                           training).to(device)
+
+    if not training:
+        model.eval()
+
     class_colors = utils.generate_class_colors(model.num_classes)
     class_to_names = utils.get_class_names(opts.names_path)
-
-    model.eval()
     with torch.no_grad():
         if opts.mode == "images":
             run_detect(model, dataloader, opts,
@@ -37,6 +47,8 @@ def test(opts):
                            class_colors,
                            class_to_names,
                            device)
+        elif opts.mode == "train":
+            run_train(model, dataloader, opts, device)
         elif opts.mode == "map":
             run_detect(model,
                        dataloader,
@@ -78,7 +90,7 @@ def run_detect(model, dataloader, opts, class_colors,
         # if i == 10:
         #     break
         break
-    
+
     if use_map:
         print("Not Implemented")
         return
@@ -107,6 +119,20 @@ def run_cam_detect(model, opts, class_colors, class_to_names, device):
 
 def run_map(model, dataloader, opts):
     pass
+
+
+def run_train(model, dataloader, opts, device):
+    criterion = YoloLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.05)
+    for i, (img, img_name) in enumerate(dataloader):
+        start_time = time.time()
+        img = img.to(device)
+        detections = model(img)
+
+        ann_name = img_name[0].split("/")[-1].split(".")[0] + ".txt"
+        targets = utils.get_targets(opts.ann_path, ann_name)
+        loss = criterion(detections, targets)
+        return
 
 
 def main():

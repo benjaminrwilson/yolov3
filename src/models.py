@@ -66,13 +66,15 @@ class Yolo(nn.Module):
 
 
 class Darknet(nn.Module):
-    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size, device):
+    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size,
+                 device, training=False):
         super(Darknet, self).__init__()
         self.blocks = utils.parse_cfg(cfg_file)
         self.net_meta, self.layers, self.num_classes = create_layers(
             self.blocks, size, device)
         self.nms_thresh = nms_thresh
         self.obj_thresh = obj_thresh
+        self.training = training
 
         self.load_weights(weights_file)
 
@@ -97,6 +99,8 @@ class Darknet(nn.Module):
             outputs.append(x)
 
         x = torch.cat(detections, 1)
+        if self.training:
+            return x
         return self.nms(x)
 
     def load_weights(self, weights_file):
