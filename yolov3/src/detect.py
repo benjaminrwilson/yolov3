@@ -4,13 +4,13 @@ import time
 
 import cv2
 import torch
-import torch.optim as optim
+from torch import optim
 
-import models
-import utils
-from data import YoloDataset
-from get_image_size import get_image_size
-from losses import YoloLoss
+from yolov3.src import utils
+from yolov3.src.data import YoloDataset
+from yolov3.src.get_image_size import get_image_size
+from yolov3.src.losses import YoloLoss
+from yolov3.src import models
 
 
 def test(opts):
@@ -137,6 +137,25 @@ def run_train(model, dataloader, opts, device):
 
         loss = model(img, targets, frame)
         return
+
+
+def get_model(opts):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = models.Darknet(opts.cfg, opts.weights,
+                           opts.nms, opts.obj,
+                           opts.size, device,
+                           False).to(device)
+    model.eval()
+    return model
+
+
+class Config:
+    def __init__(self, cfg, weights, nms, obj, size):
+        self.cfg = cfg
+        self.weights = weights
+        self.nms = nms
+        self.obj = obj
+        self.size = size
 
 
 def main():

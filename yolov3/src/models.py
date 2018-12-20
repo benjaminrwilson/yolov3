@@ -1,12 +1,9 @@
-import sys
-
-import cv2
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
-import utils
-from losses import YoloLoss
+from yolov3.src import utils
+from yolov3.src.losses import YoloLoss
 
 
 class Shortcut(nn.Module):
