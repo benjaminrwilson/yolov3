@@ -24,7 +24,7 @@ def test(opts):
                                              num_workers=4)
 
     training = False
-    if opts.mode == "train":
+    if opts.mode == "training":
         training = True
 
     model = models.Darknet(opts.cfg, opts.weights,
@@ -47,7 +47,7 @@ def test(opts):
                            class_colors,
                            class_to_names,
                            device)
-        elif opts.mode == "train":
+        elif opts.mode == "training":
             run_train(model, dataloader, opts, device)
         elif opts.mode == "map":
             run_detect(model,
@@ -107,6 +107,7 @@ def run_cam_detect(model, opts, class_colors, class_to_names, device):
             img = utils.transform_input(
                 frame, opts.size).unsqueeze(0).to(device)
             detections = model(img)
+            print(detections)
 
             utils.write_detections_cam(
                 detections, frame, opts.size, class_colors, class_to_names)
@@ -127,11 +128,14 @@ def run_train(model, dataloader, opts, device):
     for i, (img, img_name) in enumerate(dataloader):
         start_time = time.time()
         img = img.to(device)
-        detections = model(img)
-
         ann_name = img_name[0].split("/")[-1].split(".")[0] + ".txt"
-        targets = utils.get_targets(opts.ann_path, ann_name)
-        loss = criterion(detections, targets)
+        abs_img_path = os.path.join(opts.src, img_name[0])
+
+        frame = cv2.imread(abs_img_path)
+        targets = utils.get_targets(opts, ann_name, img_name[0])
+        print(targets.shape)
+
+        loss = model(img, targets, frame)
         return
 
 

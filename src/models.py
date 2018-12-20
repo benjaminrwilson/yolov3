@@ -1,10 +1,12 @@
+import sys
+
 import cv2
 import numpy as np
-
 import torch
 import torch.nn as nn
 
 import utils
+from losses import YoloLoss
 
 
 class Shortcut(nn.Module):
@@ -24,7 +26,8 @@ class Route(nn.Module):
 
 
 class Yolo(nn.Module):
-    def __init__(self, anchors, num_classes, input_width, input_height, device):
+    def __init__(self, anchors, num_classes, input_width, input_height,
+                 device):
         super(Yolo, self).__init__()
         self.anchors = anchors
         self.device = device
@@ -32,7 +35,7 @@ class Yolo(nn.Module):
         self.input_width = input_width
         self.input_height = input_height
 
-    def forward(self, x):
+    def forward(self, x, targets=None):
         batch_size, grid_size = x.shape[0], x.shape[2]
         grid_attr = self.num_classes + 5
         stride = self.input_width // grid_size
@@ -59,26 +62,27 @@ class Yolo(nn.Module):
         x[..., 5:] = torch.sigmoid(x[..., 5:])
 
         x[..., :4] *= stride
-        x = torch.cat((x[..., :4].view(batch_size, -1, 4),
-                       x[..., 4].view(batch_size, -1, 1),
-                       x[..., 5:].view(batch_size, -1, self.num_classes)), -1)
-        return x
+
+        return torch.cat((x[..., :4].view(batch_size, -1, 4),
+                          x[..., 4].view(batch_size, -1, 1),
+                          x[..., 5:].view(batch_size, -1, self.num_classes)), -1)
 
 
 class Darknet(nn.Module):
-    def __init__(self, cfg_file, weights_file, nms_thresh, obj_thresh, size,
-                 device, training=False):
+    def __init__(self, cfg_file, weights_file, nms_thresh,
+                 obj_thresh, size, device,
+                 training=False):
         super(Darknet, self).__init__()
         self.blocks = utils.parse_cfg(cfg_file)
         self.net_meta, self.layers, self.num_classes = create_layers(
             self.blocks, size, device)
         self.nms_thresh = nms_thresh
         self.obj_thresh = obj_thresh
+        self.size = size
         self.training = training
-
         self.load_weights(weights_file)
 
-    def forward(self, x):
+    def forward(self, x, targets=None, img=None):
         blocks = self.blocks[1:]
         outputs = []
 
@@ -94,13 +98,18 @@ class Darknet(nn.Module):
                 idx = int(block["from"])
                 x = outputs[-1] + outputs[idx]
             elif l_type == "yolo":
-                x = self.layers[i](x)
+                if self.training:
+                    x = self.layers[i][0](x)
+                else:
+                    x = self.layers[i](x)
                 detections.append(x)
             outputs.append(x)
-
         x = torch.cat(detections, 1)
         if self.training:
-            return x
+            print("Training")
+            criterion = YoloLoss()
+            loss = criterion(x, targets, img)
+            return loss
         return self.nms(x)
 
     def load_weights(self, weights_file):

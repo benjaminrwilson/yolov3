@@ -96,18 +96,46 @@ def _write_detection(img, detections, class_colors, class_to_names):
     return img
 
 
-def transform_detections(detections, width, height, size):
+def transform_detections(detections, width, height, size, is_corners=True):
+    ratio = max(width, height) / size
+    detections[..., :4] *= ratio
+    pad = np.ceil((np.abs(height - width)) / 2)
+    if width > height:
+        detections[..., 1] -= pad
+        if is_corners:
+            detections[..., 3] -= pad
+    else:
+        detections[..., 0] -= pad
+        if is_corners:
+                detections[..., 2] -= pad
+    return detections
+
+
+def transform_darknet2padded2norm(detections, width, height, size):
     ratio = max(width, height) / size
     detections[..., :4] *= ratio
     if width > height:
         pad = np.ceil((width - height) / 2)
         detections[..., 1] -= pad
-        detections[..., 3] -= pad
     else:
         pad = np.ceil((height - width) / 2)
         detections[..., 0] -= pad
-        detections[..., 2] -= pad
+    return detections
 
+
+def transform_norm2padded(detections, width, height, size):
+    detections[..., 0] *= width
+    detections[..., 1] *= height
+    detections[..., 2] *= width
+    detections[..., 3] *= height
+    if width > height:
+        pad = np.ceil((width - height) / 2)
+        detections[..., 1] += pad
+    else:
+        pad = np.ceil((height - width) / 2)
+        detections[..., 0] += pad
+    ratio = size / max(width, height)
+    detections[..., :4] *= ratio
     return detections
 
 
@@ -215,8 +243,10 @@ def darknet2abs_corners(x, y, width, height, img_width, img_height):
     return x1, y1, x2, y2
 
 
-def get_targets(ann_path, ann_name):
+def get_targets(opts, ann_name, img_name):
+    ann_path = opts.ann_path
     abs_ann_path = os.path.join(ann_path, ann_name)
+    w, h = get_image_size(img_name)
     with open(abs_ann_path, "r") as ann_file:
         lines = ann_file.read().splitlines()
 
@@ -226,5 +256,6 @@ def get_targets(ann_path, ann_name):
             det = [float(x) for x in det]
             det = det[1:] + [det[0]]
             res.append(det)
-        res = torch.Tensor(det)
+        res = torch.Tensor(res)
+    res = transform_norm2padded(res, w, h, opts.size)
     return res
