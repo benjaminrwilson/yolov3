@@ -1,10 +1,12 @@
 # YOLOv3: An Incremental Improvement
 
-https://arxiv.org/pdf/1804.02767.pdf
-
 <p align="center">
   <img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
 </p>
+
+### Paper
+
+https://arxiv.org/pdf/1804.02767.pdf
 
 ### Installing
 
