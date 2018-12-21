@@ -26,8 +26,6 @@ cd tools/ && \
 sh get_models.sh
 ```
 
-in the weights directory
-
 ### Running on Images
 
 In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
