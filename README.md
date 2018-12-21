@@ -17,7 +17,7 @@ python setup.py build develop
 ### Get the MS COCO Weights
 
 ```
-cd tools/ && \
+cd yolov3/tools/ && \
 sh get_models.sh
 ```
 
@@ -26,7 +26,7 @@ sh get_models.sh
 In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
 
 ```
-cd demo/ && \
+cd yolov3/demo/ && \
 python detect.py
 ```
 
@@ -35,7 +35,7 @@ python detect.py
 In **detect.py** set **mode** to **cam**. Then run:
 
 ```
-cd demo/ && \
+cd yolov3/demo/ && \
 python detect.py
 ```
 
