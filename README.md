@@ -1,7 +1,7 @@
 # YOLOv3: An Incremental Improvement
 
 <p align="center">
-  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/yolov3/results/dogs.jpg" width="800">  
 </p>
 
 ### Paper
@@ -14,7 +14,7 @@ https://arxiv.org/pdf/1804.02767.pdf
 python setup.py build develop
 ```
 
-### Get the MS COCO Weights
+### Download the MS COCO Weights
 
 ```
 cd yolov3/tools/ && \
@@ -22,8 +22,7 @@ sh get_models.sh
 ```
 
 ### Running on Images
-
-In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
+In **detect.py** set **mode** to **images**. Set your images directory. Then run:
 
 ```
 cd yolov3/demo/ && \
