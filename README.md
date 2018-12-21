@@ -1,8 +1,10 @@
-# YOLOv3
+# YOLOv3: An Incremental Improvement
 
 https://arxiv.org/pdf/1804.02767.pdf
 
-<img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+<p align="center">
+  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+</p>
 
 ### Installing
 
@@ -39,3 +41,14 @@ python detect.py
 
 - [x] Cuda Support
 - [ ] Training Support
+
+## References
+
+```
+@article{yolov3,
+  title={YOLOv3: An Incremental Improvement},
+  author={Redmon, Joseph and Farhadi, Ali},
+  journal = {arXiv},
+  year={2018}
+}
+```
