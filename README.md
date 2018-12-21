@@ -1,37 +1,32 @@
-# YOLOv3
+# YOLOv3: An Incremental Improvement
+
+<p align="center">
+  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+</p>
+
+### Paper
 
 https://arxiv.org/pdf/1804.02767.pdf
-
-<img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
-
-### Prerequisites
-
-```
-opencv_python 3.4.2.17
-numpy 1.15.1
-torch 0.4.1
-torchvision 0.2.1
-```
 
 ### Installing
 
 ```
-pip install -r requirements.txt
+python setup.py build develop
 ```
 
-### Get the COCO Weights
+### Get the MS COCO Weights
 
 ```
-sh get_yolov3_weights.sh
+cd tools/ && \
+sh get_models.sh
 ```
-
-in the weights directory
 
 ### Running on Images
 
 In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
 
 ```
+cd demo/ && \
 python detect.py
 ```
 
@@ -40,6 +35,7 @@ python detect.py
 In **detect.py** set **mode** to **cam**. Then run:
 
 ```
+cd demo/ && \
 python detect.py
 ```
 
@@ -47,3 +43,14 @@ python detect.py
 
 - [x] Cuda Support
 - [ ] Training Support
+
+## References
+
+```
+@article{yolov3,
+  title={YOLOv3: An Incremental Improvement},
+  author={Redmon, Joseph and Farhadi, Ali},
+  journal = {arXiv},
+  year={2018}
+}
+```
