@@ -1,4 +1,6 @@
-opencv_python==3.4.2.17
 numpy==1.15.1
-torch==0.4.1
+torch==1.0.0
+setuptools==40.2.0
+opencv_python==3.4.4.19
+tqdm==4.26.0
 torchvision==0.2.1
