@@ -1,16 +1,16 @@
 import argparse
 import os
 import time
+from os.path import expanduser
 
 import cv2
 import torch
 from torch import optim
 
-from yolov3.src import utils
+from yolov3.src import models, utils
 from yolov3.src.data import YoloDataset
 from yolov3.src.get_image_size import get_image_size
 from yolov3.src.losses import YoloLoss
-from yolov3.src import models
 
 
 def test(opts):
@@ -158,12 +158,15 @@ class Config:
         self.size = size
 
 
-def main():
+def get_args():
+    home = expanduser("~")
+    cfg_file = os.path.join(home, ".torch/yolov3/cfg/yolov3.cfg")
+    weights_file = os.path.join(home, ".torch/yolov3/weights/yolov3.weights")
     opts = argparse.ArgumentParser(description='Yolov3 Detection')
-    opts.add_argument('-c', '--cfg', help='Configuration path',
-                      default="../cfg/yolov3.cfg")
-    opts.add_argument('-w', '--weights', help='Weights path',
-                      default="../weights/yolov3.weights")
+    opts.add_argument('-c', '--cfg', help='Configuration file',
+                      default=cfg_file)
+    opts.add_argument('-w', '--weights', help='Weights file',
+                      default=weights_file)
     opts.add_argument('-o', '--obj', help='Objectness threshold', default=.5)
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
@@ -182,6 +185,11 @@ def main():
         '-a', '--ann_path', help='Path to annotations of the images',
         default="../annotations/")
     opts = opts.parse_args()
+    return opts
+
+
+def main():
+    opts = get_args()
     test(opts)
 
 
