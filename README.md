@@ -19,10 +19,11 @@ torchvision 0.2.1
 pip install -r requirements.txt
 ```
 
-### Get the COCO Weights
+### Get the MS COCO Weights
 
 ```
-sh get_yolov3_weights.sh
+cd tools/ && \
+sh get_models.sh
 ```
 
 in the weights directory
@@ -32,6 +33,7 @@ in the weights directory
 In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
 
 ```
+cd demo/ && \
 python detect.py
 ```
 
@@ -40,6 +42,7 @@ python detect.py
 In **detect.py** set **mode** to **cam**. Then run:
 
 ```
+cd demo/ && \
 python detect.py
 ```
 
