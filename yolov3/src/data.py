@@ -3,7 +3,7 @@ import os
 import cv2
 from torch.utils.data.dataset import Dataset
 
-import yolov3.src.utils
+from yolov3.src import utils
 
 
 class YoloDataset(Dataset):

@@ -6,6 +6,7 @@ from os.path import expanduser
 import cv2
 import torch
 from torch import optim
+from tqdm import tqdm
 
 from yolov3.src import models, utils
 from yolov3.src.data import YoloDataset
@@ -64,7 +65,7 @@ def run_detect(model, dataloader, opts, class_colors,
                device,
                use_map=False):
     results = {}
-    for i, (img, img_name) in enumerate(dataloader):
+    for i, (img, img_name) in tqdm(enumerate(dataloader)):
         start_time = time.time()
         img = img.to(device)
         detections = model(img)
@@ -176,7 +177,7 @@ def get_args():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-m', '--mode', help='Use video camera for demo', default="cam")
+        '-m', '--mode', help='Use video camera for demo', default="images")
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../config/coco.names")

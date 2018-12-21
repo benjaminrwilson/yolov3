@@ -77,6 +77,7 @@ class Darknet(nn.Module):
         self.obj_thresh = obj_thresh
         self.size = size
         self.training = training
+        self.device = device
         self.load_weights(weights_file)
 
     def forward(self, x, targets=None, img=None):
@@ -207,6 +208,19 @@ class Darknet(nn.Module):
             iou_mask = ious < nms_thresh
             pred_cls = pred_cls[1:][iou_mask]
         return detections
+
+
+    def detect(self, image):
+        with torch.no_grad():
+            height, width = image.shape[0:2]
+            image = utils.transform_input(
+                image, self.size).unsqueeze(0).to(self.device)
+            detections = self.forward(image)
+            if detections.shape[0] > 0:
+                detections = utils.transform_detections(
+                    detections, width, height, self.size)
+                detections = detections.view(-1, 7)
+            return detections
 
 
 def create_layers(cfg, size, device):
