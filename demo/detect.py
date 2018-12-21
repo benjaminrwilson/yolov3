@@ -160,11 +160,10 @@ class Config:
 
 def get_args():
     home = expanduser("~")
-    cfg_file = os.path.join(home, ".torch/yolov3/cfg/yolov3.cfg")
     weights_file = os.path.join(home, ".torch/yolov3/weights/yolov3.weights")
     opts = argparse.ArgumentParser(description='Yolov3 Detection')
     opts.add_argument('-c', '--cfg', help='Configuration file',
-                      default=cfg_file)
+                      default="../config/yolov3.cfg")
     opts.add_argument('-w', '--weights', help='Weights file',
                       default=weights_file)
     opts.add_argument('-o', '--obj', help='Objectness threshold', default=.5)
@@ -180,7 +179,7 @@ def get_args():
         '-m', '--mode', help='Use video camera for demo', default="cam")
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
-        default="../cfg/coco.names")
+        default="../config/coco.names")
     opts.add_argument(
         '-a', '--ann_path', help='Path to annotations of the images',
         default="../annotations/")
