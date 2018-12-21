@@ -165,7 +165,7 @@ class Darknet(nn.Module):
                     convolutional.weight.data.copy_(layer_weights)
                     ptr += n_weights
 
-    def nms(self, x, multi_nms=False):
+    def nms(self, x):
         n_batches = x.shape[0]
         for _ in range(n_batches):
             preds = x[x[..., 4] > self.obj_thresh]
@@ -180,24 +180,16 @@ class Darknet(nn.Module):
                 preds = torch.cat((preds[..., :5], max_conf_cls, max_conf), 1)
                 img_classes = torch.unique(preds[..., -1])
 
-                if multi_nms:
-                    for img_cls in img_classes:
-                        pred_cls = preds[preds[..., -1] == img_cls]
-                        conf_idx = torch.sort(
-                            preds[preds[..., -1] == img_cls][..., 4],
-                            descending=True)[1]
-                        pred_cls = pred_cls[conf_idx]
-                else:
+                for img_cls in img_classes:
+                    pred_cls = preds[preds[..., -1] == img_cls]
                     conf_idx = torch.sort(
-                        preds[..., 4], descending=True)[1]
-                    pred_cls = preds[conf_idx]
+                        preds[preds[..., -1] == img_cls][..., 4],
+                        descending=True)[1]
+                    pred_cls = pred_cls[conf_idx]
 
-                detections = self._nms_helper(
-                    detections, pred_cls, self.nms_thresh)
-                detections = torch.cat(detections, 0)
-        if len(detections) == 0:
-            detections = torch.Tensor(detections)
-        return detections
+                    detections = self._nms_helper(
+                        detections, pred_cls, self.nms_thresh)
+        return torch.Tensor(detections) if not detections else torch.stack(detections)
 
     def _nms_helper(self, detections, pred_cls, nms_thresh):
         while pred_cls.shape[0] > 0:
@@ -284,7 +276,6 @@ def create_layers(cfg, size, device):
             anchors = [int(anch.strip()) for anch in anchors]
             anchors = [(anchors[2 * masks[i]], anchors[2 * masks[i] + 1])
                        for i in range(len(masks))]
-
             input_width = size
             input_height = size
             num_classes = int(layer["classes"])
