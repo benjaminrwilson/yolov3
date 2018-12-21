@@ -1,7 +1,7 @@
 # YOLOv3: An Incremental Improvement
 
 <p align="center">
-  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/results/Boston_Terrier_male.jpg" width="300">  
+  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/yolov3/results/dogs.jpg" width="800">  
 </p>
 
 ### Paper
@@ -22,7 +22,7 @@ sh get_models.sh
 ```
 
 ### Running on Images
-
+Boston_Terrier_male.jpg
 In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
 
 ```
