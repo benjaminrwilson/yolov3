@@ -14,7 +14,7 @@ https://arxiv.org/pdf/1804.02767.pdf
 python setup.py build develop
 ```
 
-### Get the MS COCO Weights
+### Download the MS COCO Weights
 
 ```
 cd yolov3/tools/ && \
@@ -22,8 +22,7 @@ sh get_models.sh
 ```
 
 ### Running on Images
-Boston_Terrier_male.jpg
-In **detect.py** set **mode** to **images**. Add your images to the **images** directory. Then run:
+In **detect.py** set **mode** to **images**. Set your images directory. Then run:
 
 ```
 cd yolov3/demo/ && \
