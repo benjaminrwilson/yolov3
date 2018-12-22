@@ -72,16 +72,14 @@ def write_detections(detections, img_path, size, dst, class_colors,
 
 def write_detections_cam(detections, img, size, class_colors, class_to_names):
     if len(detections) > 0:
-        detections = detections.view(-1, 7)
         height, width = img.shape[0:2]
-        detections = transform_detections(detections, width, height, size)
         _write_detection(img, detections, class_colors, class_to_names)
 
 
 def _write_detection(img, detections, class_colors, class_to_names):
     for d in detections:
-        x1, y1, x2, y2 = d[:4].cpu().numpy()
-        class_pred = int(d[-1].cpu().numpy())
+        x1, y1, x2, y2 = d[2:].cpu().numpy()
+        class_pred = int(d[0].cpu().numpy())
         img = cv2.rectangle(img, (x1, y1), (x2, y2),
                             class_colors[class_pred],
                             lineType=cv2.LINE_AA,
@@ -107,7 +105,7 @@ def transform_detections(detections, width, height, size, is_corners=True):
     else:
         detections[..., 0] -= pad
         if is_corners:
-                detections[..., 2] -= pad
+            detections[..., 2] -= pad
     return detections
 
 

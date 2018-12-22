@@ -172,18 +172,18 @@ class Darknet(nn.Module):
             detections = []
             if preds.shape[0] > 0:
                 preds = utils.darknet2corners(preds)
-                max_conf_cls, max_conf = torch.torch.max(preds[..., 5:], 1)
+                class_conf, pred_class = torch.torch.max(preds[..., 5:], 1)
 
-                max_conf_cls = max_conf_cls.float().unsqueeze(1)
-                max_conf = max_conf.float().unsqueeze(1)
+                class_conf = class_conf.float().unsqueeze(1)
+                pred_class = pred_class.float().unsqueeze(1)
 
-                preds = torch.cat((preds[..., :5], max_conf_cls, max_conf), 1)
+                preds = torch.cat((preds[..., :5], class_conf, pred_class), 1)
                 img_classes = torch.unique(preds[..., -1])
 
-                for img_cls in img_classes:
-                    pred_cls = preds[preds[..., -1] == img_cls]
+                for img_class in img_classes:
+                    pred_cls = preds[preds[..., -1] == img_class]
                     conf_idx = torch.sort(
-                        preds[preds[..., -1] == img_cls][..., 4],
+                        preds[preds[..., -1] == img_class][..., 4],
                         descending=True)[1]
                     pred_cls = pred_cls[conf_idx]
 
@@ -201,7 +201,6 @@ class Darknet(nn.Module):
             pred_cls = pred_cls[1:][iou_mask]
         return detections
 
-
     def detect(self, image):
         with torch.no_grad():
             height, width = image.shape[0:2]
@@ -212,6 +211,10 @@ class Darknet(nn.Module):
                 detections = utils.transform_detections(
                     detections, width, height, self.size)
                 detections = detections.view(-1, 7)
+                confidences = detections[..., -2] * detections[..., -3]
+                detections = torch.cat((detections[..., 6].unsqueeze(1),
+                                            confidences.unsqueeze(1),
+                                            detections[..., :4]), 1)
             return detections
 
 
@@ -252,8 +255,7 @@ def create_layers(cfg, size, device):
 
         elif layer_type == "upsample":
             name = "upsample_{}".format(i)
-            module.add_module(name, nn.Upsample(
-                mode="nearest", scale_factor=2))
+            module.add_module(name, nn.Upsample(scale_factor=2))
         elif layer_type == "route":
             indices = layer["layers"].split(",")
             indices = [int(idx.strip()) for idx in indices]

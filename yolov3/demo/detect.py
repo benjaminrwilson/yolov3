@@ -65,16 +65,20 @@ def run_detect(model, dataloader, opts, class_colors,
                device,
                use_map=False):
     results = {}
-    for i, (img, img_name) in tqdm(enumerate(dataloader)):
+    for i, (img, img_name) in enumerate(tqdm(dataloader)):
         start_time = time.time()
         img = img.to(device)
         detections = model(img)
         if len(detections) > 0:
-            detections = detections.view(-1, 7)
             abs_img_path = os.path.join(opts.src, img_name[0])
             width, height = get_image_size(abs_img_path)
             detections = utils.transform_detections(
                 detections, width, height, opts.size)
+            detections = detections.view(-1, 7)
+            confidences = detections[..., -2] * detections[..., -3]
+            detections = torch.cat((detections[..., 6].unsqueeze(1),
+                                        confidences.unsqueeze(1),
+                                        detections[..., :4]), 1)
         if use_map:
             results[img_name[0]] = detections
         else:
@@ -87,10 +91,6 @@ def run_detect(model, dataloader, opts, class_colors,
                 class_to_names)
         elapsed = round(time.time() - start_time, 2)
         info = "Processed image {} in {} seconds".format(i, elapsed)
-        print(info)
-        # if i == 10:
-        #     break
-        break
 
     if use_map:
         print("Not Implemented")
@@ -105,11 +105,7 @@ def run_cam_detect(model, opts, class_colors, class_to_names, device):
         ret, frame = cap.read()
         if ret:
             start_time = time.time()
-            img = utils.transform_input(
-                frame, opts.size).unsqueeze(0).to(device)
-            detections = model(img)
-            print(detections)
-
+            detections = model.detect(frame)
             utils.write_detections_cam(
                 detections, frame, opts.size, class_colors, class_to_names)
             utils.write_fps(frame, start_time)
@@ -177,7 +173,7 @@ def get_args():
     opts.add_argument(
         '-d', '--dst', help='Destination directory', default="../results")
     opts.add_argument(
-        '-m', '--mode', help='Use video camera for demo', default="images")
+        '-m', '--mode', help='Use video camera for demo', default="cam")
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../config/coco.names")
