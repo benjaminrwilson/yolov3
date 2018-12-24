@@ -38,6 +38,26 @@ cd yolov3/demo/ && \
 python detect.py
 ```
 
+### Simple API
+
+```
+import os
+from yolov3.demo.detect import Config, get_model
+
+home = os.path.expanduser("~")
+config = os.path.join(home, "code/yolov3/yolov3/config/yolov3.cfg")
+weights = os.path.join(home, ".torch/yolov3/yolov3.weights")
+nms = .45
+obj = .5
+size = 416
+
+config = Config(config, weights, nms, obj, size)
+model = get_model(config)
+
+image_path = "path_to_your_image.jpg"
+detections = model.detect(image_path)
+```
+
 ## Future Improvements
 
 - [x] Cuda Support
