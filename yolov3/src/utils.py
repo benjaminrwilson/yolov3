@@ -142,21 +142,23 @@ def transform_norm2padded(detections, width, height, size):
 
 
 def transform_input(img, img_size):
-    data_transform = transforms.Compose([
-        transforms.ToTensor()])
     height, width = img.shape[:2]
-    if height > width:
-        pad_top = int(np.ceil((height - width) / 2))
-        pad_bot = (height - width) // 2
-        img = cv2.copyMakeBorder(
-            img, 0, 0, pad_top, pad_bot, cv2.BORDER_CONSTANT, value=(127.5, 127.5, 127.5))
-    else:
-        pad_top = int(np.ceil((width - height) / 2))
-        pad_bot = (width - height) // 2
-        img = cv2.copyMakeBorder(
-            img, pad_top, pad_bot, 0, 0, cv2.BORDER_CONSTANT, value=(127.5, 127.5, 127.5))
-    img = cv2.resize(img, (img_size, img_size))
-    img = data_transform(img)
+    ratio = float(img_size) / max(img.shape[:2])
+    target_height, target_width = round(height * ratio), round(width * ratio)
+    delta_width = img_size - target_width
+    delta_height = img_size - target_height
+    top, bottom = delta_height // 2, delta_height - (delta_height // 2)
+    left, right = delta_width // 2, delta_width - (delta_width // 2)
+    img = cv2.resize(img, (target_width, target_height))
+    img = cv2.copyMakeBorder(img,
+                             top,
+                             bottom,
+                             left,
+                             right,
+                             cv2.BORDER_CONSTANT,
+                             value=(127.5, 127.5, 127.5))[:, :, ::-1] \
+        .transpose(2, 0, 1)
+    img = torch.Tensor(np.ascontiguousarray(img, dtype=np.float32) / 255.0)
     return img
 
 
