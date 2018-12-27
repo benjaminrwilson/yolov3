@@ -1,7 +1,7 @@
 # YOLOv3: An Incremental Improvement
 
 <p align="center">
-  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/yolov3/results/dogs.jpg" width="800">  
+  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/yolov3/results/dogs.jpg" width="500">  
 </p>
 
 ### Paper
