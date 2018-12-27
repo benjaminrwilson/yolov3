@@ -31,11 +31,9 @@ python detect.py
 
 ### Running on live video
 
-In **detect.py** set **mode** to **cam**. Then run:
-
 ```
 cd yolov3/demo/ && \
-python detect.py
+python cam.py
 ```
 
 ### Simple API
