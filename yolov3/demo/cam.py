@@ -47,15 +47,8 @@ def get_args():
     opts.add_argument(
         '-s', '--size', help='Input size', default=416)
     opts.add_argument(
-        '-src', '--src', help='Source directory', default="../images")
-    opts.add_argument(
-        '-d', '--dst', help='Destination directory', default="../results")
-    opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
         default="../config/coco.names")
-    opts.add_argument(
-        '-a', '--ann_path', help='Path to annotations of the images',
-        default="../annotations/")
     opts = opts.parse_args()
     return opts
 
