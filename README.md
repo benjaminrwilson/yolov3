@@ -1,7 +1,7 @@
 # YOLOv3: An Incremental Improvement
 
 <p align="center">
-  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/yolov3/results/dogs.jpg" width="800">  
+  <img src="https://github.com/benjaminrwilson/yolov3/blob/master/yolov3/results/dogs.jpg" width="500">  
 </p>
 
 ### Paper
@@ -31,11 +31,9 @@ python detect.py
 
 ### Running on live video
 
-In **detect.py** set **mode** to **cam**. Then run:
-
 ```
 cd yolov3/demo/ && \
-python detect.py
+python cam.py
 ```
 
 ### Simple API
