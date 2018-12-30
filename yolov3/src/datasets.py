@@ -25,6 +25,8 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
     def __getitem__(self, index):
         img, anns = super(COCODataset, self).__getitem__(index)
 
+        anns = [ann for ann in anns if not ann["iscrowd"]]
+
         bboxes = [ann["bbox"] for ann in anns]
         bboxes = Tensor(bboxes)
 
