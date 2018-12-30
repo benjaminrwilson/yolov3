@@ -1,9 +1,36 @@
 import os
 
 import cv2
+import torchvision
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+from torch import Tensor
 from torch.utils.data.dataset import Dataset
 
 from yolov3.src import utils
+
+
+class COCODataset(torchvision.datasets.coco.CocoDetection):
+    def __init__(self, ann_file, root):
+        super(COCODataset, self).__init__(root, ann_file)
+        self.ids = sorted(self.ids)
+
+        self.coco_full_to_coco = {
+            v: i for i, v in enumerate(self.coco.getCatIds())
+        }
+        self.coco_to_coco_full = {
+            v: k for k, v in self.coco_full_to_coco.items()
+        }
+
+    def __getitem__(self, index):
+        img, anns = super(COCODataset, self).__getitem__(index)
+
+        bboxes = [ann["bbox"] for ann in anns]
+        bboxes = Tensor(bboxes)
+
+        target = [ann["category_id"] for ann in anns]
+        target = Tensor(target)
+        return img, target, index
 
 
 class YoloDataset(Dataset):
