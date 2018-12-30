@@ -76,9 +76,8 @@ def convert_to_coco_results(detections, coco_id, coco_dataset):
     detections = torch.clamp(detections, min=0)
 
     index = torch.LongTensor([2, 3, 4, 5, 1, 0])
-    detections = detections[:, index]
-    id_column = torch.zeros([detections.shape[0], 1])
-    id_column.fill_(coco_id)
+    detections = detections[:, index].cpu()
+    id_column = torch.zeros([detections.shape[0], 1]).fill_(coco_id)
     detections = torch.cat((id_column, detections), dim=1)
     return detections.numpy().tolist()
 
@@ -91,7 +90,7 @@ def get_args():
                       default="../config/yolov3.cfg")
     opts.add_argument('-w', '--weights', help='Weights file',
                       default=weights_file)
-    opts.add_argument('-o', '--obj', help='Objectness threshold', default=.7)
+    opts.add_argument('-o', '--obj', help='Objectness threshold', default=.005)
     opts.add_argument(
         '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
     opts.add_argument(
