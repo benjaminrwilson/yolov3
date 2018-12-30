@@ -172,7 +172,7 @@ class Darknet(nn.Module):
             detections = []
             if preds.shape[0] > 0:
                 preds = utils.darknet2corners(preds)
-                class_conf, pred_class = torch.torch.max(preds[..., 5:], 1)
+                class_conf, pred_class = torch.max(preds[..., 5:], 1)
 
                 class_conf = class_conf.float().unsqueeze(1)
                 pred_class = pred_class.float().unsqueeze(1)
