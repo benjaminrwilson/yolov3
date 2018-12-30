@@ -48,7 +48,7 @@ def get_args():
         '-s', '--size', help='Input size', default=416)
     opts.add_argument(
         '-np', '--names_path', help='Path to names of classes',
-        default="../config/coco.names")
+        default="../data/coco.names")
     opts = opts.parse_args()
     return opts
 
