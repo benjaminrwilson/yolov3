@@ -20,8 +20,8 @@ def eval(opts):
                     opts.size, device,
                     False).to(device).eval()
 
-    coco_dataset = COCODataset(opts.ann_file, opts.root)
     coco_ids = get_coco_ids("../data/5k.txt")
+    coco_dataset = COCODataset(opts.ann_file, opts.root, coco_ids)
 
     results = []
     for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
