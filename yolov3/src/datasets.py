@@ -1,6 +1,7 @@
 import os
 
 import cv2
+import torch
 import torchvision
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -11,9 +12,13 @@ from yolov3.src import utils
 
 
 class COCODataset(torchvision.datasets.coco.CocoDetection):
-    def __init__(self, ann_file, root):
+    def __init__(self, ann_file, root, ids=None):
         super(COCODataset, self).__init__(root, ann_file)
-        self.ids = sorted(self.ids)
+
+        if ids is None:
+            self.ids = sorted(self.ids)
+        else:
+            self.ids = ids
 
         self.coco_full_to_coco = {
             v: i for i, v in enumerate(self.coco.getCatIds())
@@ -31,7 +36,8 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
         bboxes = Tensor(bboxes)
 
         target = [ann["category_id"] for ann in anns]
-        target = Tensor(target)
+        target = Tensor(target).unsqueeze(1)
+        target = torch.cat((target, bboxes), dim=1)
         return img, target, index
 
 
