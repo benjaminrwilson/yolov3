@@ -73,7 +73,6 @@ def convert_to_coco_results(detections, coco_id, coco_dataset):
 
     detections[:, 4] = widths
     detections[:, 5] = heights
-    detections = torch.clamp(detections, min=0)
 
     index = torch.LongTensor([2, 3, 4, 5, 1, 0])
     detections = detections[:, index].cpu()
