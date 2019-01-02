@@ -85,27 +85,34 @@ def convert_to_coco_results(detections, coco_id, coco_dataset):
 def get_args():
     home = os.path.expanduser("~")
     weights_file = os.path.join(home, ".torch/yolov3/yolov3.weights")
-    opts = argparse.ArgumentParser(description='Yolov3 Detection')
-    opts.add_argument('-c', '--cfg', help='Configuration file',
+    opts = argparse.ArgumentParser(description='Yolov3 Evaluation')
+    opts.add_argument('-c', '--cfg',
+                      help='Configuration file',
                       default="../config/yolov3.cfg")
-    opts.add_argument('-w', '--weights', help='Weights file',
+    opts.add_argument('-w', '--weights',
+                      help='Weights file',
                       default=weights_file)
-    opts.add_argument('-o', '--obj', help='Objectness threshold', default=.005)
-    opts.add_argument(
-        '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
-    opts.add_argument(
-        '-s', '--size', help='Input size', default=416)
-    opts.add_argument(
-        '-r', '--root', help='Root directory of images',
-        default=os.path.join(home, "data/coco/val2014/"))
-    opts.add_argument(
-        '-d', '--dst', help='Destination directory', default="../results")
-    opts.add_argument(
-        '-np', '--names_path', help='Path to names of classes',
-        default="../config/coco.names")
-    opts.add_argument(
-        '-a', '--ann_file', help='Absolute path to the coco json file',
-        default=os.path.join(home, "data/coco/annotations/instances_val2014.json"))
+    opts.add_argument('-o', '--obj',
+                      help='Objectness threshold',
+                      default=.005)
+    opts.add_argument('-n', '--nms',
+                      help='Non-maximum Suppression threshold',
+                      default=.45)
+    opts.add_argument('-s', '--size',
+                      help='Input size', default=416)
+    opts.add_argument('-r', '--root',
+                      help='Root directory of images',
+                      default="../../datasets/coco/val2014/")
+    opts.add_argument('-d', '--dst',
+                      help='Destination directory',
+                      default="../results")
+    opts.add_argument('-np', '--names_path',
+                      help='Path to names of classes',
+                      default="../config/coco.names")
+    opts.add_argument('-a', '--ann_file',
+                      help='Absolute path to the coco json file',
+                      default="../../datasets/coco/annotations/"
+                      "instances_val2014.json")
     opts = opts.parse_args()
     return opts
 
