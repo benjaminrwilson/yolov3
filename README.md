@@ -8,17 +8,10 @@
 
 https://arxiv.org/pdf/1804.02767.pdf
 
-### Installing
+### Installing + MS COCO Weights
 
 ```
 python setup.py build develop
-```
-
-### Download the MS COCO Weights
-
-```
-cd yolov3/tools/ && \
-sh get_models.sh
 ```
 
 ### Running on Images
