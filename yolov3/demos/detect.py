@@ -82,25 +82,33 @@ def get_args():
     home = expanduser("~")
     weights_file = os.path.join(home, ".torch/yolov3/yolov3.weights")
     opts = argparse.ArgumentParser(description='Yolov3 Detection')
-    opts.add_argument('-c', '--cfg', help='Configuration file',
+    opts.add_argument('-c', '--cfg',
+                      help='Configuration file',
                       default="../config/yolov3.cfg")
-    opts.add_argument('-w', '--weights', help='Weights file',
+    opts.add_argument('-w', '--weights',
+                      help='Weights file',
                       default=weights_file)
-    opts.add_argument('-o', '--obj', help='Objectness threshold', default=.5)
-    opts.add_argument(
-        '-n', '--nms', help='Non-maximum Suppression threshold', default=.45)
-    opts.add_argument(
-        '-s', '--size', help='Input size', default=416)
-    opts.add_argument(
-        '-src', '--src', help='Source directory', default="../images")
-    opts.add_argument(
-        '-d', '--dst', help='Destination directory', default="../results")
-    opts.add_argument(
-        '-np', '--names_path', help='Path to names of classes',
-        default="../data/coco.names")
-    opts.add_argument(
-        '-a', '--ann_path', help='Path to annotations of the images',
-        default="../annotations/")
+    opts.add_argument('-o', '--obj',
+                      help='Objectness threshold',
+                      default=.5)
+    opts.add_argument('-n', '--nms',
+                      help='Non-maximum Suppression threshold',
+                      default=.45)
+    opts.add_argument('-s', '--size',
+                      help='Input size',
+                      default=416)
+    opts.add_argument('-src', '--src',
+                      help='Source directory',
+                      default="../images")
+    opts.add_argument('-d', '--dst',
+                      help='Destination directory',
+                      default="../results")
+    opts.add_argument('-np', '--names_path',
+                      help='Path to names of classes',
+                      default="../data/coco.names")
+    opts.add_argument('-a', '--ann_path',
+                      help='Path to annotations of the images',
+                      default="../annotations/")
     opts = opts.parse_args()
     return opts
 
