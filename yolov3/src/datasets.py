@@ -2,16 +2,14 @@ import os
 
 import cv2
 import torch
-import torchvision
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
 from torch import Tensor
-from torch.utils.data.dataset import Dataset
+from torch.utils.data import Dataset
+from torchvision.datasets.coco import CocoDetection
 
 from yolov3.src import utils
 
 
-class COCODataset(torchvision.datasets.coco.CocoDetection):
+class COCODataset(CocoDetection):
     def __init__(self, ann_file, root, ids=None):
         super(COCODataset, self).__init__(root, ann_file)
 
