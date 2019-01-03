@@ -29,6 +29,29 @@ cd yolov3/demo/ && \
 python cam.py
 ```
 
+### Evaluation
+
+Evaluating the model on MS COCO is extremely simple. First, get all the necessary images and annotations with this script:
+
+```
+sh yolov3/tools/get_coco.sh
+```
+
+This will create a directory in your home directory called 'coco'. Next, create another directory called 'datasets' inside of the project, and softlink the 'coco' folder that we created.
+
+```
+mkdir datasets && \
+ln -s ~/coco datasets/coco
+```
+
+To evaluate:
+
+```
+python yolov3/demos/eval.py
+```
+
+At 608 input resolution, this should achieve 56% AP at 50% IoU.
+
 ### Simple API
 
 ```
