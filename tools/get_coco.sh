@@ -7,5 +7,5 @@ else
     exit
 fi
 
-wget -c https://pjreddie.com/media/files/val2014.zip -P ~/coco
+wget -c http://images.cocodataset.org/zips/val2014.zip -P ~/coco
 wget -c https://pjreddie.com/media/files/instances_train-val2014.zip -P ~/coco
