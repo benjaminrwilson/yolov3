@@ -3,9 +3,10 @@ import time
 
 import cv2
 import numpy as np
+import PIL
 import torch
-
 from torchvision import transforms
+
 from yolov3.src.get_image_size import get_image_size
 
 
@@ -76,6 +77,15 @@ def write_detections_cam(detections, img, size, class_colors, class_to_names):
         _write_detection(img, detections, class_colors, class_to_names)
 
 
+def show_bboxes(bboxes, img):
+    for x1, y1, x2, y2 in bboxes.coords:
+        img = cv2.rectangle(img, (x1, y1), (x2, y2),
+                            (255, 255, 255),
+                            lineType=cv2.LINE_AA,
+                            thickness=3)
+    return img
+
+
 def _write_detection(img, detections, class_colors, class_to_names):
     for d in detections:
         x1, y1, x2, y2 = d[2:].cpu().numpy()
@@ -101,7 +111,7 @@ def _write_detection(img, detections, class_colors, class_to_names):
 def transform_detections(detections, width, height, size, is_corners=True):
     ratio = max(width, height) / size
     detections[..., :4] *= ratio
-    pad = np.ceil((np.abs(height - width)) / 2)
+    pad = np.abs(height - width) / 2
     if width > height:
         detections[..., 1] -= pad
         if is_corners:
@@ -141,25 +151,19 @@ def transform_norm2padded(detections, width, height, size):
     return detections
 
 
-def transform_input(img, img_size):
-    height, width = img.shape[:2]
-    ratio = float(img_size) / max(img.shape[:2])
-    target_height, target_width = round(height * ratio), round(width * ratio)
-    delta_width = img_size - target_width
-    delta_height = img_size - target_height
-    top, bottom = delta_height // 2, delta_height - (delta_height // 2)
-    left, right = delta_width // 2, delta_width - (delta_width // 2)
-    img = cv2.resize(img, (target_width, target_height))
-    img = cv2.copyMakeBorder(img,
-                             top,
-                             bottom,
-                             left,
-                             right,
-                             cv2.BORDER_CONSTANT,
-                             value=(127.5, 127.5, 127.5))[:, :, ::-1] \
-        .transpose(2, 0, 1)
-    img = torch.Tensor(np.ascontiguousarray(img, dtype=np.float32) / 255.0)
-    return img
+def transform_input(img, size, color=(127.5, 127.5, 127.5)):
+    if isinstance(img, PIL.Image.Image):
+        img = np.array(img)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    ratio = size / max(img.shape[:2])
+    img = cv2.resize(img, (0, 0), fx=ratio, fy=ratio)
+
+    dw = size - img.shape[1]
+    dh = size - img.shape[0]
+    padding = [dh // 2, dh - dh // 2, dw // 2, dw - dw // 2]
+    img = cv2.copyMakeBorder(img, *padding, cv2.BORDER_CONSTANT, color)
+    return transforms.ToTensor()(img)
 
 
 def generate_class_colors(num_classes):

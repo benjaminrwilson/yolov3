@@ -36,6 +36,10 @@
 ehthumbs.db
 Thumbs.db
 
+# Python Metadata #
+###################
+*.egg-info
+
 .vscode
 __pycache__
 

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
+from localization.bboxes import BBoxes, CoordType
 from yolov3.src import utils
 from yolov3.src.losses import YoloLoss
 
@@ -78,7 +79,7 @@ class Darknet(nn.Module):
         self.size = size
         self.training = training
         self.device = device
-        self.load_weights(weights_file)
+        self._load_weights(weights_file)
 
     def forward(self, x, targets=None, img=None):
         blocks = self.blocks[1:]
@@ -110,7 +111,7 @@ class Darknet(nn.Module):
             return loss
         return self.nms(x)
 
-    def load_weights(self, weights_file):
+    def _load_weights(self, weights_file):
         with open(weights_file, "rb") as wf:
             np.fromfile(wf, np.int32, 5)
             weights = np.fromfile(wf, np.float32)
@@ -201,21 +202,28 @@ class Darknet(nn.Module):
             pred_cls = pred_cls[1:][iou_mask]
         return detections
 
-    def detect(self, image):
+    def detect(self, img):
         with torch.no_grad():
-            height, width = image.shape[0:2]
-            image = utils.transform_input(
-                image, self.size).unsqueeze(0).to(self.device)
-            detections = self.forward(image)
+            height, width = img.shape[:2]
+            img = utils.transform_input(
+                img, self.size).unsqueeze(0).to(self.device)
+            detections = self.forward(img)
+
+            bboxes = BBoxes(torch.Tensor(), CoordType.XYXY, (width, height))
             if detections.shape[0] > 0:
                 detections = utils.transform_detections(
                     detections, width, height, self.size)
                 detections = detections.view(-1, 7)
-                confidences = detections[..., -2] * detections[..., -3]
-                detections = torch.cat((detections[..., 6].unsqueeze(1),
-                                            confidences.unsqueeze(1),
-                                            detections[..., :4]), 1)
-            return detections
+                coords = detections[..., :4]
+                confidences = detections[..., 4] * detections[..., 5]
+                labels = detections[..., 6]
+                bboxes = BBoxes(detections[..., :4],
+                                CoordType.XYXY, (width, height))
+                bboxes.attrs["confidences"] = confidences
+                bboxes.attrs["labels"] = labels
+                bboxes.coords = coords
+                print(bboxes.shape)
+            return bboxes
 
 
 def create_layers(cfg, size, device):
