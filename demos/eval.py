@@ -9,6 +9,7 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
 
+from localization.bboxes import BBoxes, CoordType
 from yolov3.src.datasets import COCODataset
 from yolov3.src.models import Darknet
 
@@ -27,16 +28,12 @@ def eval(opts):
     for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
         coco_id = coco_dataset.ids[idx]
         if coco_id in coco_ids:
-            detections = model.detect(rgb2bgr(img))
+            detections = model.detect(img)
             if detections.shape[0] > 0:
                 results += convert_to_coco_results(
                     detections, coco_id, coco_dataset)
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
-
-
-def rgb2bgr(pil_img):
-    return np.array(pil_img)[:, :, ::-1].copy()
 
 
 def evaluate_coco(ann_file, ids, results):
