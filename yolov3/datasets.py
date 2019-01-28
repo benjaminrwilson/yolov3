@@ -37,13 +37,12 @@ class COCODataset(CocoDetection):
         target.attrs["labels"] = Tensor(labels)
 
         img, w, h, dw, dh = utils.transform_input(img, self.size)
-
-        return img, target, index
+        return img, target, index, w, h, dw, dh
 
 
 def collate_fn(batch):
-    imgs, bboxes, indices = zip(*batch)
-    return torch.stack((imgs)), bboxes, Tensor(indices)
+    imgs, bboxes, indices, w, h, dw, dh = zip(*batch)
+    return torch.stack((imgs)), bboxes, Tensor(indices), w, h, dw, dh
 
 
 class YoloDataset(Dataset):

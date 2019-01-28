@@ -32,26 +32,14 @@ def eval(opts):
                                              shuffle=True)
 
     results = []
-<<<<<<< HEAD
-    for i, (img, target, ids) in enumerate(tqdm(dataloader)):
-        dets = model.forward(img)
-        bboxes = transform_detections(dets, )
-        if bboxes.shape[0] > 0:
+    for i, (img, target, ids, w, h, dw, dh) in enumerate(tqdm(dataloader)):
+        with torch.no_grad():
+            dets = model.forward(img)
+            bboxes = transform_detections(dets, w, h, dw, dh, opts.size)
             results += convert_to_coco_results(
                 bboxes, ids, coco_dataset, device)
-        if i > 50:
-            break
-=======
-    for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
-        coco_id = coco_dataset.ids[idx]
-        if coco_id in coco_ids:
-            bboxes = model.detect(img)
-            if bboxes.shape > 0:
-                results += convert_to_coco_results(
-                    bboxes, coco_id, coco_dataset, device)
-        # if i > 50:
-        #     break
->>>>>>> 301684c65f7e27b605acd32a846701dc6a25ab7d
+            if i > 50:
+                break
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
 
@@ -80,19 +68,24 @@ def get_coco_ids(split_file):
     return sorted(list(coco_ids))
 
 
-def convert_to_coco_results(bboxes, coco_id, coco_dataset, device):
-    labels = bboxes.attrs["labels"].unsqueeze(1)
+def convert_to_coco_results(batches, ids, coco_dataset, device):
+    results = []
+    for i, bboxes in enumerate(batches):
+        labels = bboxes.attrs["labels"].unsqueeze(1)
+        coco_id = ids[i]
 
-    n = labels.shape[0]
-    for i in range(n):
-        idx = coco_dataset.coco_to_coco_full[int(labels[i].item())]
-        labels[i].fill_(idx)
+        n = labels.shape[0]
+        for i in range(n):
+            idx = coco_dataset.coco_to_coco_full[int(labels[i].item())]
+            labels[i].fill_(idx)
 
-    coco_ids = torch.zeros([n]).fill_(coco_id).to(device).unsqueeze(1)
-    coords = bboxes.convert(CoordType.XYWH).coords
-    confidences = bboxes.attrs["confidences"].unsqueeze(1)
-    results = torch.cat((coco_ids, coords, confidences, labels), dim=-1)
-    return results.cpu().numpy().tolist()
+        coco_ids = torch.zeros([n]).fill_(coco_id).to(device).unsqueeze(1)
+        coords = bboxes.convert(CoordType.XYWH).coords
+        confidences = bboxes.attrs["confidences"].unsqueeze(1)
+        res = torch.cat((coco_ids, coords, confidences, labels), dim=-1)
+        res = res.cpu().numpy().tolist()
+        results += res
+    return results
 
 
 def get_args():

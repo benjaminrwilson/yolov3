@@ -6,6 +6,7 @@ import numpy as np
 import PIL
 import torch
 from torchvision.transforms import Pad, Resize, ToTensor
+from localization.bboxes import BBoxes, CoordType
 
 
 def parse_cfg(cfg_path):
@@ -101,14 +102,26 @@ def _write_detection(img, detections, class_colors, class_to_names):
     return img
 
 
-def transform_detections(bboxes, w, h, dw, dh, size):
-    bboxes[..., 0] -= dw // 2
-    bboxes[..., 1] -= dh // 2
-    bboxes[..., 2] -= dw // 2
-    bboxes[..., 3] -= dh // 2
-    ratio = max(w, h) / size
-    bboxes[..., :4] *= ratio
-    return bboxes
+def transform_detections(batches,  w, h, dw, dh, size):
+    res = []
+    for i, bboxes in enumerate(batches):
+        bboxes[..., 0] -= dw[i] // 2
+        bboxes[..., 1] -= dh[i] // 2
+        bboxes[..., 2] -= dw[i] // 2
+        bboxes[..., 3] -= dh[i] // 2
+        ratio = max(w[i], h[i]) / size
+
+        bboxes[..., :4] *= ratio
+        coords = bboxes[..., :4]
+        confidences = bboxes[..., 4] * bboxes[..., 5]
+        labels = bboxes[..., 6]
+        bboxes = BBoxes(bboxes[..., :4],
+                        CoordType.XYXY, (w, h))
+        bboxes.attrs["confidences"] = confidences
+        bboxes.attrs["labels"] = labels
+        bboxes.coords = coords
+        res.append(bboxes)
+    return res
 
 
 def transform_input(img, size):
@@ -122,13 +135,8 @@ def transform_input(img, size):
     dw = size - img.size[0]
     dh = size - img.size[1]
     padding = (dw // 2, dh // 2, dw - dw // 2, dh - dh // 2)
-<<<<<<< HEAD
-    img = transforms.Pad(padding)(img)
-    return transforms.ToTensor()(img), w, h, dw, dh
-=======
     img = Pad(padding)(img)
     return ToTensor()(img), w, h, dw, dh
->>>>>>> 301684c65f7e27b605acd32a846701dc6a25ab7d
 
 
 def generate_class_colors(num_classes):
