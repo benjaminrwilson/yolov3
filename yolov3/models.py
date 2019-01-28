@@ -198,7 +198,7 @@ class Darknet(nn.Module):
             if pred_cls.shape[0] == 1:
                 break
             ious = utils.bb_iou(pred_cls[0], pred_cls[1:])
-            iou_mask = ious < nms_thresh
+            iou_mask = (ious < nms_thresh).squeeze(1)
             pred_cls = pred_cls[1:][iou_mask]
         return detections
 

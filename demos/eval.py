@@ -32,6 +32,8 @@ def eval(opts):
             if bboxes.shape > 0:
                 results += convert_to_coco_results(
                     bboxes, coco_id, coco_dataset, device)
+        if i > 50:
+            break
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
 

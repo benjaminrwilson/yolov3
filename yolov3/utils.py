@@ -38,10 +38,8 @@ def darknet2corners(coords):
 
 
 def bb_iou(bb1, bb2):
-    bb1_x1, bb1_y1, bb1_x2, bb1_y2 = bb1[...,
-                                         0], bb1[..., 1], bb1[..., 2], bb1[..., 3]
-    bb2_x1, bb2_y1, bb2_x2, bb2_y2 = bb2[...,
-                                         0], bb2[..., 1], bb2[..., 2], bb2[..., 3]
+    bb1_x1, bb1_y1, bb1_x2, bb1_y2 = bb1[..., :4].split(1, dim=-1)
+    bb2_x1, bb2_y1, bb2_x2, bb2_y2 = bb2[..., :4].split(1, dim=-1)
 
     intersection_x1 = torch.max(bb1_x1, bb2_x1)
     intersection_y1 = torch.max(bb1_y1, bb2_y1)
@@ -121,20 +119,18 @@ def transform_detections(detections, width, height, size, is_corners=True):
     return detections
 
 
-def transform_input(img, size, color=(0, 0, 0)):
-    if isinstance(img, PIL.Image.Image):
-        img = np.array(img)
-    else:
+def transform_input(img, size):
+    if isinstance(img, np.ndarray):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = PIL.Image.fromarray(img)
+    w, h = img.size
+    target = int((size / max(w, h)) * min(w, h))
+    img = transforms.Resize(target)(img)
 
-    h, w = img.shape[:2]
-    ratio = size / max(img.shape[:2])
-    img = cv2.resize(img, (0, 0), fx=ratio, fy=ratio)
-
-    dw = size - img.shape[1]
-    dh = size - img.shape[0]
-    padding = [dh // 2, dh - dh // 2, dw // 2, dw - dw // 2]
-    img = cv2.copyMakeBorder(img, *padding, cv2.BORDER_CONSTANT, color)
+    dw = size - img.size[0]
+    dh = size - img.size[1]
+    padding = (dw // 2, dh // 2, dw - dw // 2, dh - dh // 2)
+    img = transforms.Pad(padding)(img)
     return transforms.ToTensor()(img), w, h
 
 
