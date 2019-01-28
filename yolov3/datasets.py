@@ -14,7 +14,7 @@ class COCODataset(CocoDetection):
     def __init__(self, ann_file, root, size, ids=None):
         super(COCODataset, self).__init__(root, ann_file)
 
-        self.ids = sorted(self.ids)
+        self.ids = sorted(ids)
 
         self.coco_full_to_coco = {
             v: i for i, v in enumerate(self.coco.getCatIds())
