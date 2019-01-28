@@ -32,8 +32,8 @@ def eval(opts):
             if bboxes.shape > 0:
                 results += convert_to_coco_results(
                     bboxes, coco_id, coco_dataset, device)
-        if i > 50:
-            break
+        # if i > 50:
+        #     break
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
 
@@ -64,7 +64,7 @@ def get_coco_ids(split_file):
 
 def convert_to_coco_results(bboxes, coco_id, coco_dataset, device):
     labels = bboxes.attrs["labels"].unsqueeze(1)
-    
+
     n = labels.shape[0]
     for i in range(n):
         idx = coco_dataset.coco_to_coco_full[int(labels[i].item())]
