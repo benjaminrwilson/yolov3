@@ -5,7 +5,7 @@ import time
 import cv2
 import torch
 
-from yolov3.src import models, utils
+from yolov3 import models, utils
 
 
 def run(opts):

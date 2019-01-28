@@ -8,10 +8,10 @@ import torch
 from torch import optim
 from tqdm import tqdm
 
-from yolov3.src import models, utils
-from yolov3.src.datasets import YoloDataset
-from yolov3.src.get_image_size import get_image_size
-from yolov3.src.losses import YoloLoss
+from yolov3 import models, utils
+from yolov3.datasets import YoloDataset
+from yolov3.get_image_size import get_image_size
+from yolov3.losses import YoloLoss
 
 
 def test(opts):

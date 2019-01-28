@@ -10,8 +10,8 @@ from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
 
 from localization.bboxes import BBoxes, CoordType
-from yolov3.src.datasets import COCODataset
-from yolov3.src.models import Darknet
+from yolov3.datasets import COCODataset
+from yolov3.models import Darknet
 
 
 def eval(opts):
