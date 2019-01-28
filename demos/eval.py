@@ -32,6 +32,7 @@ def eval(opts):
                                              shuffle=True)
 
     results = []
+<<<<<<< HEAD
     for i, (img, target, ids) in enumerate(tqdm(dataloader)):
         dets = model.forward(img)
         bboxes = transform_detections(dets, )
@@ -40,6 +41,17 @@ def eval(opts):
                 bboxes, ids, coco_dataset, device)
         if i > 50:
             break
+=======
+    for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
+        coco_id = coco_dataset.ids[idx]
+        if coco_id in coco_ids:
+            bboxes = model.detect(img)
+            if bboxes.shape > 0:
+                results += convert_to_coco_results(
+                    bboxes, coco_id, coco_dataset, device)
+        # if i > 50:
+        #     break
+>>>>>>> 301684c65f7e27b605acd32a846701dc6a25ab7d
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
 

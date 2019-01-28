@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import PIL
 import torch
-from torchvision import transforms
+from torchvision.transforms import Pad, Resize, ToTensor
 
 
 def parse_cfg(cfg_path):
@@ -101,20 +101,14 @@ def _write_detection(img, detections, class_colors, class_to_names):
     return img
 
 
-def transform_detections(detections, width, height, size, is_corners=True):
-    ratio = size / max(width, height)
-    pad = (ratio * np.abs(height - width)) // 2
-    if width > height:
-        detections[..., 1] -= pad
-        if is_corners:
-            detections[..., 3] -= pad
-    else:
-        detections[..., 0] -= pad
-        if is_corners:
-            detections[..., 2] -= pad
-    ratio = max(width, height) / size
-    detections[..., :4] *= ratio
-    return detections
+def transform_detections(bboxes, w, h, dw, dh, size):
+    bboxes[..., 0] -= dw // 2
+    bboxes[..., 1] -= dh // 2
+    bboxes[..., 2] -= dw // 2
+    bboxes[..., 3] -= dh // 2
+    ratio = max(w, h) / size
+    bboxes[..., :4] *= ratio
+    return bboxes
 
 
 def transform_input(img, size):
@@ -123,13 +117,18 @@ def transform_input(img, size):
         img = PIL.Image.fromarray(img)
     w, h = img.size
     target = int((size / max(w, h)) * min(w, h))
-    img = transforms.Resize(target)(img)
+    img = Resize(target)(img)
 
     dw = size - img.size[0]
     dh = size - img.size[1]
     padding = (dw // 2, dh // 2, dw - dw // 2, dh - dh // 2)
+<<<<<<< HEAD
     img = transforms.Pad(padding)(img)
     return transforms.ToTensor()(img), w, h, dw, dh
+=======
+    img = Pad(padding)(img)
+    return ToTensor()(img), w, h, dw, dh
+>>>>>>> 301684c65f7e27b605acd32a846701dc6a25ab7d
 
 
 def generate_class_colors(num_classes):
