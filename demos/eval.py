@@ -28,10 +28,10 @@ def eval(opts):
     for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
         coco_id = coco_dataset.ids[idx]
         if coco_id in coco_ids:
-            detections = model.detect(img)
-            if detections.shape[0] > 0:
+            bboxes = model.detect(img)
+            if bboxes.shape > 0:
                 results += convert_to_coco_results(
-                    detections, coco_id, coco_dataset)
+                    bboxes, coco_id, coco_dataset, device)
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
 
@@ -60,22 +60,19 @@ def get_coco_ids(split_file):
     return sorted(list(coco_ids))
 
 
-def convert_to_coco_results(detections, coco_id, coco_dataset):
-    for i in range(detections.shape[0]):
-        idx = coco_dataset.coco_to_coco_full[int(detections[i, 0].item())]
-        detections[i, 0] = torch.Tensor([idx])
+def convert_to_coco_results(bboxes, coco_id, coco_dataset, device):
+    labels = bboxes.attrs["labels"].unsqueeze(1)
+    
+    n = labels.shape[0]
+    for i in range(n):
+        idx = coco_dataset.coco_to_coco_full[int(labels[i].item())]
+        labels[i].fill_(idx)
 
-    widths = detections[:, 4] - detections[:, 2]
-    heights = detections[:, 5] - detections[:, 3]
-
-    detections[:, 4] = widths
-    detections[:, 5] = heights
-
-    index = torch.LongTensor([2, 3, 4, 5, 1, 0])
-    detections = detections[:, index].cpu()
-    id_column = torch.zeros([detections.shape[0], 1]).fill_(coco_id)
-    detections = torch.cat((id_column, detections), dim=1)
-    return detections.numpy().tolist()
+    coco_ids = torch.zeros([n]).fill_(coco_id).to(device).unsqueeze(1)
+    coords = bboxes.convert(CoordType.XYWH).coords
+    confidences = bboxes.attrs["confidences"].unsqueeze(1)
+    results = torch.cat((coco_ids, coords, confidences, labels), dim=-1)
+    return results.cpu().numpy().tolist()
 
 
 def get_args():
@@ -84,7 +81,7 @@ def get_args():
     opts = argparse.ArgumentParser(description='Yolov3 Evaluation')
     opts.add_argument('-c', '--cfg',
                       help='Configuration file',
-                      default="../config/yolov3.cfg")
+                      default="../configs/yolov3.cfg")
     opts.add_argument('-w', '--weights',
                       help='Weights file',
                       default=weights_file)
@@ -95,10 +92,10 @@ def get_args():
                       help='Non-maximum Suppression threshold',
                       default=.45)
     opts.add_argument('-s', '--size',
-                      help='Input size', default=416)
+                      help='Input size', default=608)
     opts.add_argument('-r', '--root',
                       help='Root directory of images',
-                      default="../../datasets/coco/val2014/")
+                      default="../datasets/coco/val2014/")
     opts.add_argument('-d', '--dst',
                       help='Destination directory',
                       default="../results")
@@ -107,7 +104,7 @@ def get_args():
                       default="../config/coco.names")
     opts.add_argument('-a', '--ann_file',
                       help='Absolute path to the coco json file',
-                      default="../../datasets/coco/annotations/"
+                      default="../datasets/coco/annotations/"
                       "instances_val2014.json")
     opts = opts.parse_args()
     return opts

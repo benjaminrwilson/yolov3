@@ -3,7 +3,7 @@ import subprocess
 from setuptools import find_packages, setup
 
 process = subprocess.Popen(["sh", "get_weights.sh"],
-                           cwd="yolov3/tools/")
+                           cwd="tools/")
 process.wait()
 
 with open('requirements.txt') as f:

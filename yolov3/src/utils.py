@@ -30,14 +30,11 @@ def parse_cfg(cfg_path):
     return layers
 
 
-def darknet2corners(preds):
-    bb = preds.new(preds.shape)
-    bb[..., 0] = preds[..., 0] - preds[..., 2] / 2
-    bb[..., 1] = preds[..., 1] - preds[..., 3] / 2
-    bb[..., 2] = preds[..., 0] + preds[..., 2] / 2
-    bb[..., 3] = preds[..., 1] + preds[..., 3] / 2
-    preds[..., :4] = bb[..., :4]
-    return preds
+def darknet2corners(coords):
+    bottom_right = coords[..., :2].clone() + (coords[..., 2:4] - 1) / 2
+    coords[..., :2] -= coords[..., 2:4] / 2
+    coords[..., 2:4] = bottom_right
+    return coords
 
 
 def bb_iou(bb1, bb2):
@@ -109,9 +106,8 @@ def _write_detection(img, detections, class_colors, class_to_names):
 
 
 def transform_detections(detections, width, height, size, is_corners=True):
-    ratio = max(width, height) / size
-    detections[..., :4] *= ratio
-    pad = np.abs(height - width) / 2
+    ratio = size / max(width, height)
+    pad = (ratio * np.abs(height - width)) // 2
     if width > height:
         detections[..., 1] -= pad
         if is_corners:
@@ -120,42 +116,18 @@ def transform_detections(detections, width, height, size, is_corners=True):
         detections[..., 0] -= pad
         if is_corners:
             detections[..., 2] -= pad
-    return detections
-
-
-def transform_darknet2padded2norm(detections, width, height, size):
     ratio = max(width, height) / size
     detections[..., :4] *= ratio
-    if width > height:
-        pad = np.ceil((width - height) / 2)
-        detections[..., 1] -= pad
-    else:
-        pad = np.ceil((height - width) / 2)
-        detections[..., 0] -= pad
     return detections
 
 
-def transform_norm2padded(detections, width, height, size):
-    detections[..., 0] *= width
-    detections[..., 1] *= height
-    detections[..., 2] *= width
-    detections[..., 3] *= height
-    if width > height:
-        pad = np.ceil((width - height) / 2)
-        detections[..., 1] += pad
-    else:
-        pad = np.ceil((height - width) / 2)
-        detections[..., 0] += pad
-    ratio = size / max(width, height)
-    detections[..., :4] *= ratio
-    return detections
-
-
-def transform_input(img, size, color=(127.5, 127.5, 127.5)):
+def transform_input(img, size, color=(0, 0, 0)):
     if isinstance(img, PIL.Image.Image):
         img = np.array(img)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    else:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+    h, w = img.shape[:2]
     ratio = size / max(img.shape[:2])
     img = cv2.resize(img, (0, 0), fx=ratio, fy=ratio)
 
@@ -163,7 +135,7 @@ def transform_input(img, size, color=(127.5, 127.5, 127.5)):
     dh = size - img.shape[0]
     padding = [dh // 2, dh - dh // 2, dw // 2, dw - dw // 2]
     img = cv2.copyMakeBorder(img, *padding, cv2.BORDER_CONSTANT, color)
-    return transforms.ToTensor()(img)
+    return transforms.ToTensor()(img), w, h
 
 
 def generate_class_colors(num_classes):
@@ -192,78 +164,3 @@ def write_fps(frame, start_time):
                 1,
                 (255, 255, 255),
                 2)
-
-
-def calculate_map(ann_path, img_path, results, device, class_colors, class_to_names, size, dst):
-    for img_name, detections in results.items():
-        ann_name = img_name.split("/")[-1].replace(".jpg", ".txt")
-        abs_ann_path = os.path.join(ann_path, ann_name)
-
-        info = "Processing Image {}".format(img_name)
-        print(info)
-
-        ground_truths = []
-        with open(abs_ann_path, "r") as ann_file:
-            lines = ann_file.read().splitlines()
-            abs_img_name = os.path.join(img_path, img_name)
-            img_width, img_height = get_image_size(abs_img_name)
-
-            # Iterate over annotations
-            for line in lines:
-                class_label, x, y, width, height = [
-                    float(x) for x in line.split(" ")]
-
-                # Convert coordinates to top left and bottom right corners
-                x1, y1, x2, y2 = darknet2abs_corners(float(x), float(y), float(
-                    width), float(height), img_width, img_height)
-                coords = torch.Tensor([x1, y1, x2, y2], device=device)
-
-                tp, fp, fn = 0, 0, 0
-                # Get the detections that match the class label
-                cls_index = detections[..., -1] == class_label
-                detection_cls = detections[cls_index]
-                if detection_cls.shape[0] == 0:
-                    continue
-
-                # Sort the detections by class confidence
-                conf_idx = torch.sort(
-                    detections[cls_index][..., 5],
-                    descending=True)[1]
-                detection_cls = detection_cls[conf_idx]
-
-                # Get ious with respect to ground truth label
-                ious = bb_iou(coords, detection_cls)
-                detections = detections[ious > .5, ...][1:, ...]
-                ground_truths.append([x1, y1, x2, y2, class_label])
-        ground_truths = torch.Tensor(ground_truths)
-
-
-def darknet2abs_corners(x, y, width, height, img_width, img_height):
-    width *= img_width
-    height *= img_height
-    x *= img_width
-    y *= img_height
-
-    x1 = x - (width / 2)
-    y1 = y - (height / 2)
-    x2 = x + (width / 2)
-    y2 = y + (height / 2)
-    return x1, y1, x2, y2
-
-
-def get_targets(opts, ann_name, img_name):
-    ann_path = opts.ann_path
-    abs_ann_path = os.path.join(ann_path, ann_name)
-    w, h = get_image_size(img_name)
-    with open(abs_ann_path, "r") as ann_file:
-        lines = ann_file.read().splitlines()
-
-        res = []
-        for line in lines:
-            det = line.split(" ")
-            det = [float(x) for x in det]
-            det = det[1:] + [det[0]]
-            res.append(det)
-        res = torch.Tensor(res)
-    res = transform_norm2padded(res, w, h, opts.size)
-    return res

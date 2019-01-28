@@ -204,9 +204,9 @@ class Darknet(nn.Module):
 
     def detect(self, img):
         with torch.no_grad():
-            height, width = img.shape[:2]
-            img = utils.transform_input(
-                img, self.size).unsqueeze(0).to(self.device)
+            img, width, height = utils.transform_input(
+                img, self.size)
+            img = img.unsqueeze(0).to(self.device)
             detections = self.forward(img)
 
             bboxes = BBoxes(torch.Tensor(), CoordType.XYXY, (width, height))
@@ -222,7 +222,6 @@ class Darknet(nn.Module):
                 bboxes.attrs["confidences"] = confidences
                 bboxes.attrs["labels"] = labels
                 bboxes.coords = coords
-                print(bboxes.shape)
             return bboxes
 
 
