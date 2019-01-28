@@ -6,7 +6,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision.datasets.coco import CocoDetection
 
-from yolov3.src import utils
+from yolov3 import utils
 
 
 class COCODataset(CocoDetection):

@@ -7,7 +7,7 @@ import PIL
 import torch
 from torchvision import transforms
 
-from yolov3.src.get_image_size import get_image_size
+from yolov3.get_image_size import get_image_size
 
 
 def parse_cfg(cfg_path):

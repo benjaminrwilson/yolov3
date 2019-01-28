@@ -3,8 +3,8 @@ import torch
 from torch import nn
 
 from localization.bboxes import BBoxes, CoordType
-from yolov3.src import utils
-from yolov3.src.losses import YoloLoss
+from yolov3 import utils
+from yolov3.losses import YoloLoss
 
 
 class Shortcut(nn.Module):

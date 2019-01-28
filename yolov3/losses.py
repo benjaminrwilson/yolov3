@@ -2,7 +2,7 @@ import cv2
 import torch
 from torch import nn
 
-import yolov3.src.utils
+import yolov3.utils
 import sys
 
 
