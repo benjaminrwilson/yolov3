@@ -5,18 +5,16 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision.datasets.coco import CocoDetection
+from localization.bboxes import BBoxes, CoordType
 
 from yolov3 import utils
 
 
 class COCODataset(CocoDetection):
-    def __init__(self, ann_file, root, ids=None):
+    def __init__(self, ann_file, root, size, ids=None):
         super(COCODataset, self).__init__(root, ann_file)
 
-        if ids is None:
-            self.ids = sorted(self.ids)
-        else:
-            self.ids = ids
+        self.ids = sorted(self.ids)
 
         self.coco_full_to_coco = {
             v: i for i, v in enumerate(self.coco.getCatIds())
@@ -24,19 +22,28 @@ class COCODataset(CocoDetection):
         self.coco_to_coco_full = {
             v: k for k, v in self.coco_full_to_coco.items()
         }
+        self.size = size
 
     def __getitem__(self, index):
         img, anns = super(COCODataset, self).__getitem__(index)
 
         anns = [ann for ann in anns if not ann["iscrowd"]]
 
+        w, h = img.size
         bboxes = [ann["bbox"] for ann in anns]
-        bboxes = Tensor(bboxes)
+        target = BBoxes(Tensor(bboxes), CoordType.XYXY, (w, h))
 
-        target = [ann["category_id"] for ann in anns]
-        target = Tensor(target).unsqueeze(1)
-        target = torch.cat((target, bboxes), dim=1)
+        labels = [ann["category_id"] for ann in anns]
+        target.attrs["labels"] = Tensor(labels)
+
+        img, w, h, dw, dh = utils.transform_input(img, self.size)
+
         return img, target, index
+
+
+def collate_fn(batch):
+    imgs, bboxes, indices = zip(*batch)
+    return torch.stack((imgs)), bboxes, Tensor(indices)
 
 
 class YoloDataset(Dataset):

@@ -168,11 +168,12 @@ class Darknet(nn.Module):
 
     def nms(self, x):
         n_batches = x.shape[0]
-        for _ in range(n_batches):
-            preds = x[x[..., 4] > self.obj_thresh]
-            detections = []
+        batches = []
+        for i in range(n_batches):
+            preds = x[i, x[i, ..., 4] > self.obj_thresh]
+            dets = []
             if preds.shape[0] > 0:
-                preds = utils.darknet2corners(preds)
+                preds = utils.center2xyxy(preds)
                 class_conf, pred_class = torch.max(preds[..., 5:], 1)
 
                 class_conf = class_conf.float().unsqueeze(1)
@@ -188,9 +189,11 @@ class Darknet(nn.Module):
                         descending=True)[1]
                     pred_cls = pred_cls[conf_idx]
 
-                    detections = self._nms_helper(
-                        detections, pred_cls, self.nms_thresh)
-        return torch.Tensor(detections) if not detections else torch.stack(detections)
+                    dets = self._nms_helper(
+                        dets, pred_cls, self.nms_thresh)
+                batches.append(torch.stack(dets))
+        return batches
+    
 
     def _nms_helper(self, detections, pred_cls, nms_thresh):
         while pred_cls.shape[0] > 0:

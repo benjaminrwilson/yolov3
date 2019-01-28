@@ -15,8 +15,8 @@ class YoloLoss(nn.Module):
 
     def forward(self, x, targets, img):
         print("Forward Loss")
-        input_corners = utils.darknet2corners(x)
-        target_corners = utils.darknet2corners(targets)
+        input_corners = utils.center2xyxy(x)
+        target_corners = utils.center2xyxy(targets)
 
         bbox = utils.bb_iou(target_corners, input_corners[..., :4])
 

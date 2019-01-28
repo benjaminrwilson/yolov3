@@ -10,8 +10,9 @@ from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
 
 from localization.bboxes import BBoxes, CoordType
-from yolov3.datasets import COCODataset
+from yolov3.datasets import COCODataset, collate_fn
 from yolov3.models import Darknet
+from yolov3.utils import transform_detections
 
 
 def eval(opts):
@@ -22,16 +23,21 @@ def eval(opts):
                     False).to(device).eval()
 
     coco_ids = get_coco_ids("../data/5k.txt")
-    coco_dataset = COCODataset(opts.ann_file, opts.root, coco_ids)
+    coco_dataset = COCODataset(opts.ann_file, opts.root, opts.size, coco_ids)
+
+    dataloader = torch.utils.data.DataLoader(coco_dataset,
+                                             batch_size=4,
+                                             collate_fn=collate_fn,
+                                             num_workers=4,
+                                             shuffle=True)
 
     results = []
-    for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
-        coco_id = coco_dataset.ids[idx]
-        if coco_id in coco_ids:
-            bboxes = model.detect(img)
-            if bboxes.shape > 0:
-                results += convert_to_coco_results(
-                    bboxes, coco_id, coco_dataset, device)
+    for i, (img, target, ids) in enumerate(tqdm(dataloader)):
+        dets = model.forward(img)
+        bboxes = transform_detections(dets, )
+        if bboxes.shape[0] > 0:
+            results += convert_to_coco_results(
+                bboxes, ids, coco_dataset, device)
         if i > 50:
             break
     results = np.array(results)
@@ -64,7 +70,7 @@ def get_coco_ids(split_file):
 
 def convert_to_coco_results(bboxes, coco_id, coco_dataset, device):
     labels = bboxes.attrs["labels"].unsqueeze(1)
-    
+
     n = labels.shape[0]
     for i in range(n):
         idx = coco_dataset.coco_to_coco_full[int(labels[i].item())]

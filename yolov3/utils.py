@@ -7,8 +7,6 @@ import PIL
 import torch
 from torchvision import transforms
 
-from yolov3.get_image_size import get_image_size
-
 
 def parse_cfg(cfg_path):
     with open(cfg_path, "r") as cfg_file:
@@ -30,7 +28,7 @@ def parse_cfg(cfg_path):
     return layers
 
 
-def darknet2corners(coords):
+def center2xyxy(coords):
     bottom_right = coords[..., :2].clone() + (coords[..., 2:4] - 1) / 2
     coords[..., :2] -= coords[..., 2:4] / 2
     coords[..., 2:4] = bottom_right
@@ -131,7 +129,7 @@ def transform_input(img, size):
     dh = size - img.size[1]
     padding = (dw // 2, dh // 2, dw - dw // 2, dh - dh // 2)
     img = transforms.Pad(padding)(img)
-    return transforms.ToTensor()(img), w, h
+    return transforms.ToTensor()(img), w, h, dw, dh
 
 
 def generate_class_colors(num_classes):
