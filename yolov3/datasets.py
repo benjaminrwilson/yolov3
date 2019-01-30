@@ -8,6 +8,7 @@ from torchvision.datasets.coco import CocoDetection
 from localization.bboxes import BBoxes, CoordType
 
 from yolov3 import utils
+import numpy as np
 
 
 class COCODataset(CocoDetection):
@@ -37,7 +38,7 @@ class COCODataset(CocoDetection):
         target.attrs["labels"] = Tensor(labels)
 
         img, w, h, dw, dh = utils.transform_input(img, self.size)
-        return img, target, index, w, h, dw, dh
+        return img, target, self.ids[index], w, h, dw, dh
 
 
 def collate_fn(batch):

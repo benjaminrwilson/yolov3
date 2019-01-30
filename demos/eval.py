@@ -26,10 +26,10 @@ def eval(opts):
     coco_dataset = COCODataset(opts.ann_file, opts.root, opts.size, coco_ids)
 
     dataloader = torch.utils.data.DataLoader(coco_dataset,
-                                             batch_size=16,
+                                             batch_size=1,
                                              collate_fn=collate_fn,
-                                             num_workers=4,
-                                             shuffle=True)
+                                             num_workers=1,
+                                             shuffle=False)
 
     results = []
     for i, (img, target, ids, w, h, dw, dh) in enumerate(tqdm(dataloader)):
@@ -38,8 +38,6 @@ def eval(opts):
             bboxes = transform_detections(dets, w, h, dw, dh, opts.size)
             results += convert_to_coco_results(
                 bboxes, ids, coco_dataset, device)
-            if i > 10:
-                break
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
 
@@ -48,7 +46,6 @@ def evaluate_coco(ann_file, ids, results):
     coco_gt = COCO(ann_file)
     coco_dt = coco_gt.loadRes(results)
     ann_ids = coco_gt.getAnnIds(ids)
-    print(ann_ids)
     coco_gt = coco_gt.loadRes(coco_gt.loadAnns(ann_ids))
 
     coco_eval = COCOeval(coco_gt, coco_dt, "bbox")
@@ -71,12 +68,9 @@ def get_coco_ids(split_file):
 
 def convert_to_coco_results(batches, ids, coco_dataset, device):
     results = []
-    used_ids = {x: i for i, x in enumerate(list(sorted(ids.numpy())))}
-    print(used_ids)
     for i, bboxes in enumerate(batches):
         labels = bboxes.attrs["labels"].unsqueeze(1)
         coco_id = ids[i]
-        print(coco_id)
 
         n = labels.shape[0]
         for i in range(n):

@@ -102,7 +102,7 @@ def _write_detection(img, detections, class_colors, class_to_names):
     return img
 
 
-def transform_detections(batches,  w, h, dw, dh, size):
+def transform_detections(batches, w, h, dw, dh, size):
     res = []
     for i, bboxes in enumerate(batches):
         bboxes[..., 0] -= dw[i] // 2
