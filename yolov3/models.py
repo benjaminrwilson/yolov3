@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch import nn
+from torch import Tensor, nn
 
 from localization.bboxes import BBoxes, CoordType
 from yolov3 import utils
@@ -193,7 +193,6 @@ class Darknet(nn.Module):
                         dets, pred_cls, self.nms_thresh)
                 batches.append(torch.stack(dets))
         return batches
-    
 
     def _nms_helper(self, detections, pred_cls, nms_thresh):
         while pred_cls.shape[0] > 0:
@@ -207,25 +206,20 @@ class Darknet(nn.Module):
 
     def detect(self, img):
         with torch.no_grad():
-            img, w, h, dw, dh = utils.transform_input(
-                img, self.size)
+            img, w, h, dw, dh = utils.transform_input(img,
+                                                      self.size)
             img = img.unsqueeze(0).to(self.device)
             detections = self.forward(img)
 
             bboxes = BBoxes(torch.Tensor(), CoordType.XYXY, (w, h))
-            if detections.shape[0] > 0:
-                detections = utils.transform_detections(
-                    detections, w, h, dw, dh, self.size)
-                detections = detections.view(-1, 7)
-                coords = detections[..., :4]
-                confidences = detections[..., 4] * detections[..., 5]
-                labels = detections[..., 6]
-                bboxes = BBoxes(detections[..., :4],
-                                CoordType.XYXY, (w, h))
-                bboxes.attrs["confidences"] = confidences
-                bboxes.attrs["labels"] = labels
-                bboxes.coords = coords
-            return bboxes
+            if len(detections) > 0:
+                bboxes = utils.transform_detections(detections,
+                                                    [w],
+                                                    [h],
+                                                    [dw],
+                                                    [dh],
+                                                    self.size)
+            return bboxes[0]
 
 
 def create_layers(cfg, size, device):
