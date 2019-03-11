@@ -10,14 +10,6 @@ https://arxiv.org/pdf/1804.02767.pdf
 python setup.py build develop
 ```
 
-### Running on Images
-In **detect.py** set **mode** to **images**. Set your images directory. Then run:
-
-```
-cd yolov3/demo/ && \
-python detect.py
-```
-
 ### Running on live video
 
 ```
