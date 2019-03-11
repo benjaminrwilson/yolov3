@@ -46,7 +46,7 @@ To evaluate:
 python yolov3/demos/eval.py
 ```
 
-At 608 input resolution, this should achieve 56% AP at 50% IoU.
+At 608 input resolution, this should achieve 56% @ AP50
 
 ### Simple API
 
