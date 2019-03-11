@@ -3,7 +3,7 @@ import torch
 from torch import Tensor, nn
 
 from localization.bboxes import BBoxes, CoordType
-from yolov3 import utils
+from yolov3.utils import *
 from yolov3.losses import YoloLoss
 
 
@@ -42,8 +42,8 @@ class Yolo(nn.Module):
         x = x.view(batch_size, n_anchors, grid_attr, grid_size,
                    grid_size).permute(0, 1, 3, 4, 2).contiguous()
 
-        anchors = torch.FloatTensor(
-            [(a[0] / stride, a[1] / stride) for a in self.anchors]).to(self.device)
+        anchors = torch.FloatTensor([(a[0] / stride, a[1] / stride)
+                                     for a in self.anchors]).to(self.device)
 
         grid_offsets_x = torch.arange(grid_size).repeat(grid_size, 1).view(
             1, 1, grid_size, grid_size).float().to(self.device)
@@ -56,8 +56,7 @@ class Yolo(nn.Module):
             anchors[:, 0].view(1, n_anchors, 1, 1)
         x[..., 3] = torch.exp(x[..., 3]) * \
             anchors[:, 1].view(1, n_anchors, 1, 1)
-        x[..., 4] = torch.sigmoid(x[..., 4])
-        x[..., 5:] = torch.sigmoid(x[..., 5:])
+        x[..., 4:] = torch.sigmoid(x[..., 4:])
 
         x[..., :4] *= stride
 
@@ -71,7 +70,7 @@ class Darknet(nn.Module):
                  obj_thresh, size, device,
                  training=False):
         super(Darknet, self).__init__()
-        self.blocks = utils.parse_cfg(cfg_file)
+        self.blocks = parse_cfg(cfg_file)
         self.net_meta, self.layers, self.num_classes = create_layers(
             self.blocks, size, device)
         self.nms_thresh = nms_thresh
@@ -109,7 +108,7 @@ class Darknet(nn.Module):
             criterion = YoloLoss()
             loss = criterion(x, targets, img)
             return loss
-        return self.nms(x)
+        return nms(x, self.obj_thresh, self.nms_thresh)
 
     def _load_weights(self, weights_file):
         with open(weights_file, "rb") as wf:
@@ -166,59 +165,20 @@ class Darknet(nn.Module):
                     convolutional.weight.data.copy_(layer_weights)
                     ptr += n_weights
 
-    def nms(self, x):
-        n_batches = x.shape[0]
-        batches = []
-        for i in range(n_batches):
-            preds = x[i, x[i, ..., 4] > self.obj_thresh]
-            dets = []
-            if preds.shape[0] > 0:
-                preds = utils.center2xyxy(preds)
-                class_conf, pred_class = torch.max(preds[..., 5:], 1)
-
-                class_conf = class_conf.float().unsqueeze(1)
-                pred_class = pred_class.float().unsqueeze(1)
-
-                preds = torch.cat((preds[..., :5], class_conf, pred_class), 1)
-                img_classes = torch.unique(preds[..., -1])
-
-                for img_class in img_classes:
-                    pred_cls = preds[preds[..., -1] == img_class]
-                    conf_idx = torch.sort(
-                        preds[preds[..., -1] == img_class][..., 4],
-                        descending=True)[1]
-                    pred_cls = pred_cls[conf_idx]
-
-                    dets = self._nms_helper(
-                        dets, pred_cls, self.nms_thresh)
-                batches.append(torch.stack(dets))
-        return batches
-
-    def _nms_helper(self, detections, pred_cls, nms_thresh):
-        while pred_cls.shape[0] > 0:
-            detections.append(pred_cls[0])
-            if pred_cls.shape[0] == 1:
-                break
-            ious = utils.bb_iou(pred_cls[0], pred_cls[1:])
-            iou_mask = (ious < nms_thresh).squeeze(1)
-            pred_cls = pred_cls[1:][iou_mask]
-        return detections
-
     def detect(self, img):
         with torch.no_grad():
-            img, w, h, dw, dh = utils.transform_input(img,
-                                                      self.size)
+            img, w, h, dw, dh = transform_input(img, self.size)
             img = img.unsqueeze(0).to(self.device)
             detections = self.forward(img)
 
             bboxes = BBoxes(torch.Tensor(), CoordType.XYXY, (w, h))
             if len(detections) > 0:
-                bboxes = utils.transform_detections(detections,
-                                                    [w],
-                                                    [h],
-                                                    [dw],
-                                                    [dh],
-                                                    self.size)
+                bboxes = transform_detections(detections,
+                                              [w],
+                                              [h],
+                                              [dw],
+                                              [dh],
+                                              self.size)
             return bboxes[0]
 
 
@@ -252,18 +212,15 @@ def create_layers(cfg, size, device):
             if bn:
                 name = "batch_norm_{}".format(i)
                 module.add_module(name, nn.BatchNorm2d(out_channels))
-
             if layer["activation"] == "leaky":
                 name = "leaky_relu_{}".format(i)
                 module.add_module(name, nn.LeakyReLU(0.1, inplace=True))
-
         elif layer_type == "upsample":
             name = "upsample_{}".format(i)
             module.add_module(name, nn.Upsample(scale_factor=2))
         elif layer_type == "route":
             indices = layer["layers"].split(",")
             indices = [int(idx.strip()) for idx in indices]
-
             for j, idx in enumerate(indices):
                 if idx < 0:
                     indices[j] = idx

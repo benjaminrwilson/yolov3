@@ -6,6 +6,7 @@ import numpy as np
 import PIL
 import torch
 from torchvision.transforms import Pad, Resize, ToTensor
+
 from localization.bboxes import BBoxes, CoordType
 
 
@@ -55,6 +56,44 @@ def bb_iou(bb1, bb2):
     return iou
 
 
+def nms(x, obj_thresh, nms_thresh):
+    n_batches = x.shape[0]
+    batches = []
+    for i in range(n_batches):
+        preds = x[i, x[i, ..., 4] > obj_thresh]
+        dets = []
+        if preds.shape[0] > 0:
+            preds = center2xyxy(preds)
+            class_conf, pred_class = torch.max(preds[..., 5:], 1)
+
+            class_conf = class_conf.float().unsqueeze(1)
+            pred_class = pred_class.float().unsqueeze(1)
+
+            preds = torch.cat((preds[..., :5], class_conf, pred_class), 1)
+            img_classes = torch.unique(preds[..., -1])
+
+            for img_class in img_classes:
+                pred_cls = preds[preds[..., -1] == img_class]
+                conf_idx = torch.sort(pred_cls[..., 4],
+                                      descending=True)[1]
+                pred_cls = pred_cls[conf_idx]
+
+                dets = _nms_helper(dets, pred_cls, nms_thresh)
+            batches.append(torch.stack(dets))
+    return batches
+
+
+def _nms_helper(detections, pred_cls, nms_thresh):
+    while pred_cls.shape[0] > 0:
+        detections.append(pred_cls[0])
+        if pred_cls.shape[0] == 1:
+            break
+        ious = bb_iou(pred_cls[0], pred_cls[1:])
+        iou_mask = (ious < nms_thresh).squeeze(1)
+        pred_cls = pred_cls[1:][iou_mask]
+    return detections
+
+
 def write_detections(detections, img_path, size, dst, class_colors,
                      class_to_names):
     img = cv2.imread(img_path)
@@ -71,16 +110,28 @@ def write_detections_cam(detections, img, size, class_colors, class_to_names):
         _write_detection(img, detections, class_colors, class_to_names)
 
 
-def show_bboxes(bboxes, img):
-    for x1, y1, x2, y2 in bboxes.coords:
-        img = cv2.rectangle(img, (x1, y1), (x2, y2),
-                            (255, 255, 255),
-                            lineType=cv2.LINE_AA,
-                            thickness=3)
-    return img
+def draw_bboxes(bboxes,
+                img,
+                class_colors,
+                color=(255, 255, 255),
+                line_type=cv2.LINE_AA,
+                thickness=3):
+    coords = bboxes.coords
+    labels = bboxes.attrs["labels"].long()
+    for (x1, y1, x2, y2), label in zip(coords, labels):
+        cv2.rectangle(img,
+                      (x1, y1),
+                      (x2, y2),
+                      class_colors[label.item()],
+                      lineType=line_type,
+                      thickness=thickness)
 
 
-def _write_detection(img, detections, class_colors, class_to_names):
+def _write_detection(img,
+                     detections,
+                     class_colors,
+                     class_to_names,
+                     line_type=cv2.LINE_AA):
     for d in detections:
         x1, y1, x2, y2 = d[2:].cpu().numpy()
         class_pred = int(d[0].cpu().numpy())
@@ -88,17 +139,20 @@ def _write_detection(img, detections, class_colors, class_to_names):
         height, width = img.shape[0:2]
         scale = max((x2 - x1) / width, (y2 - y1) / height)
         conf = str(int(100 * d[1].cpu().numpy())) + "%"
-        img = cv2.rectangle(img, (x1, y1), (x2, y2),
+        img = cv2.rectangle(img,
+                            (x1, y1),
+                            (x2, y2),
                             class_colors[class_pred],
-                            lineType=cv2.LINE_AA,
+                            lineType=line_type,
                             thickness=10 * d[1])
-        img = cv2.putText(img, class_to_names[class_pred] + "|" + conf,
+        img = cv2.putText(img,
+                          class_to_names[class_pred] + "|" + conf,
                           (x1, y1 - 20 * d[1]),
                           cv2.FONT_HERSHEY_DUPLEX,
                           scale,
                           (255, 255, 255),
                           1,
-                          lineType=cv2.LINE_AA)
+                          lineType=line_type)
     return img
 
 
@@ -159,7 +213,8 @@ def write_fps(frame, start_time):
     x, y = 0, frame.shape[0]
     fps = round(1 / (time.time() - start_time), 2)
     stats = "FPS: {}".format(fps)
-    cv2.putText(frame, stats,
+    cv2.putText(frame,
+                stats,
                 (x, y),
                 cv2.FONT_HERSHEY_DUPLEX,
                 1,

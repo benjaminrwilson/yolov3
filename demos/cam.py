@@ -24,8 +24,7 @@ def run(opts):
         ret, img = cap.read()
         if ret:
             bboxes = model.detect(img)
-            annotated_img = utils.show_bboxes(bboxes, img)
-
+            utils.draw_bboxes(bboxes, img, class_colors)
             cv2.imshow('img', img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
