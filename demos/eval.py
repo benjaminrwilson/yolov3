@@ -9,8 +9,10 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
 
-from yolov3.src.datasets import COCODataset
-from yolov3.src.models import Darknet
+from localization.bboxes import BBoxes, CoordType
+from yolov3.datasets import COCODataset, collate_fn
+from yolov3.models import Darknet
+from yolov3.utils import transform_detections
 
 
 def eval(opts):
@@ -21,22 +23,23 @@ def eval(opts):
                     False).to(device).eval()
 
     coco_ids = get_coco_ids("../data/5k.txt")
-    coco_dataset = COCODataset(opts.ann_file, opts.root, coco_ids)
+    coco_dataset = COCODataset(opts.ann_file, opts.root, opts.size, coco_ids)
+
+    dataloader = torch.utils.data.DataLoader(coco_dataset,
+                                             batch_size=1,
+                                             collate_fn=collate_fn,
+                                             num_workers=1,
+                                             shuffle=False)
 
     results = []
-    for i, (img, target, idx) in enumerate(tqdm(coco_dataset)):
-        coco_id = coco_dataset.ids[idx]
-        if coco_id in coco_ids:
-            detections = model.detect(rgb2bgr(img))
-            if detections.shape[0] > 0:
-                results += convert_to_coco_results(
-                    detections, coco_id, coco_dataset)
+    for i, (img, target, ids, w, h, dw, dh) in enumerate(tqdm(dataloader)):
+        with torch.no_grad():
+            dets = model.forward(img.to(device))
+            bboxes = transform_detections(dets, w, h, dw, dh, opts.size)
+            results += convert_to_coco_results(
+                bboxes, ids, coco_dataset, device)
     results = np.array(results)
     evaluate_coco(opts.ann_file, coco_ids, results)
-
-
-def rgb2bgr(pil_img):
-    return np.array(pil_img)[:, :, ::-1].copy()
 
 
 def evaluate_coco(ann_file, ids, results):
@@ -63,22 +66,24 @@ def get_coco_ids(split_file):
     return sorted(list(coco_ids))
 
 
-def convert_to_coco_results(detections, coco_id, coco_dataset):
-    for i in range(detections.shape[0]):
-        idx = coco_dataset.coco_to_coco_full[int(detections[i, 0].item())]
-        detections[i, 0] = torch.Tensor([idx])
+def convert_to_coco_results(batches, ids, coco_dataset, device):
+    results = []
+    for i, bboxes in enumerate(batches):
+        labels = bboxes.attrs["labels"].unsqueeze(1)
+        coco_id = ids[i]
 
-    widths = detections[:, 4] - detections[:, 2]
-    heights = detections[:, 5] - detections[:, 3]
+        n = labels.shape[0]
+        for i in range(n):
+            idx = coco_dataset.coco_to_coco_full[int(labels[i].item())]
+            labels[i].fill_(idx)
 
-    detections[:, 4] = widths
-    detections[:, 5] = heights
-
-    index = torch.LongTensor([2, 3, 4, 5, 1, 0])
-    detections = detections[:, index].cpu()
-    id_column = torch.zeros([detections.shape[0], 1]).fill_(coco_id)
-    detections = torch.cat((id_column, detections), dim=1)
-    return detections.numpy().tolist()
+        coco_ids = torch.zeros([n]).fill_(coco_id).to(device).unsqueeze(1)
+        coords = bboxes.convert(CoordType.XYWH).coords
+        confidences = bboxes.attrs["confidences"].unsqueeze(1)
+        res = torch.cat((coco_ids, coords, confidences, labels), dim=-1)
+        res = res.cpu().numpy().tolist()
+        results += res
+    return results
 
 
 def get_args():
@@ -87,7 +92,7 @@ def get_args():
     opts = argparse.ArgumentParser(description='Yolov3 Evaluation')
     opts.add_argument('-c', '--cfg',
                       help='Configuration file',
-                      default="../config/yolov3.cfg")
+                      default="../configs/yolov3.cfg")
     opts.add_argument('-w', '--weights',
                       help='Weights file',
                       default=weights_file)
@@ -98,10 +103,10 @@ def get_args():
                       help='Non-maximum Suppression threshold',
                       default=.45)
     opts.add_argument('-s', '--size',
-                      help='Input size', default=416)
+                      help='Input size', default=608)
     opts.add_argument('-r', '--root',
                       help='Root directory of images',
-                      default="../../datasets/coco/val2014/")
+                      default="../datasets/coco/val2014/")
     opts.add_argument('-d', '--dst',
                       help='Destination directory',
                       default="../results")
@@ -110,7 +115,7 @@ def get_args():
                       default="../config/coco.names")
     opts.add_argument('-a', '--ann_file',
                       help='Absolute path to the coco json file',
-                      default="../../datasets/coco/annotations/"
+                      default="../datasets/coco/annotations/"
                       "instances_val2014.json")
     opts = opts.parse_args()
     return opts
